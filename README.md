@@ -93,54 +93,53 @@ docker compose up -d
 | `/opt/dockge` | Dockge installation directory |
 | `/opt/stacks` | Where stack compose files live |
 
-### Step 1: Create the stack directory
+### Step 1: Clone the project into the stack directory
 
 ```bash
-mkdir -p /opt/stacks/tv-trac
+cd /opt/stacks
+git clone https://github.com/paeon/tv-trac.git
+cd tv-trac
 ```
 
-### Step 2: Create the compose file
+This gives you the full project at `/opt/stacks/tv-trac`, including the `Dockerfile`, `.env.example`, and app code.
 
-Create `/opt/stacks/tv-trac/compose.yaml`:
+### Step 2: Create your env file
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+Fill in your TVDB API key and media path (see the Docker section above for the env format).
+
+### Step 3: Build with the bundled compose file (or create your own)
+
+The project already includes a `docker-compose.yml` that works with Dockge with a small adjustment. Dockge looks for `compose.yaml` by default, so either rename it or symlink it:
+
+```bash
+ln -s docker-compose.yml compose.yaml
+```
+
+The bundled compose file uses `${MEDIA_HOST_PATH}` from your `.env` for the volume mount — this is the cleanest approach for Dockge since all paths are in one place.
+
+If you prefer a static compose file instead, create `/opt/stacks/tv-trac/compose.yaml`:
 
 ```yaml
 services:
   tvtrac:
-    image: tvtrac:latest
+    build: .                    # builds from /opt/stacks/tv-trac
     container_name: tvtrac
     ports:
       - "8000:8000"
-    environment:
-      - TVDB_API_KEY=your_actual_api_key_here
-      - TVDB_PIN=
-      - MEDIA_ROOT=/media
-      - DATABASE_URL=sqlite+aiosqlite:///./data/tvtrac.db
+    env_file:
+      - .env
     volumes:
-      - /opt/stacks/tv-trac/data:/app/data        # persist the database
-      - /path/to/your/tv/shows:/media:ro           # your TV media (read-only)
+      - ./data:/app/data              # persist the database
+      - /path/to/your/tv/shows:/media:ro  # your TV media (read-only)
     restart: unless-stopped
 ```
 
 > **Important:** Replace `/path/to/your/tv/shows` with the actual path to your media directory.
-
-### Step 3: Build the image
-
-Since you're using a local build (not a pre-built image from a registry), build the image first on your Dockge host:
-
-```bash
-# From the tv-trac project directory
-cd /path/to/tv-trac
-docker build -t tvtrac:latest .
-```
-
-Or use Dockge's built-in builder if your compose file points to a build context:
-
-```yaml
-services:
-  tvtrac:
-    build: /path/to/tv-trac   # path to the project directory on the host
-    ...
-```
 
 ### Step 4: Deploy
 
