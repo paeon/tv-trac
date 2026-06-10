@@ -166,6 +166,35 @@ docker compose up -d
 
 ---
 
+## Backup & Restore
+
+The database is a single SQLite file. Back it up by copying:
+
+```bash
+# Docker
+cp data/tvtrac.db data/tvtrac.db.bak
+
+# Dockge
+cp /opt/stacks/tv-trac/data/tvtrac.db /opt/stacks/tv-trac/data/tvtrac.db.bak
+```
+
+To restore, stop the container, replace the file, and restart:
+
+```bash
+docker compose down
+cp data/tvtrac.db.bak data/tvtrac.db
+docker compose up -d
+```
+
+**Tip:** Run a daily cron job:
+
+```bash
+# Add to crontab (crontab -e)
+0 3 * * * cp /opt/stacks/tv-trac/data/tvtrac.db /opt/stacks/tv-trac/data/tvtrac.db.$(date +\%Y\%m\%d)
+```
+
+---
+
 ## API Endpoints
 
 | Method | Path | Description |
