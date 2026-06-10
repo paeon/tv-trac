@@ -1,0 +1,15 @@
+services:
+  tvtrac:
+    build: .
+    container_name: tvtrac
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Override MEDIA_ROOT inside the container to the mount point
+      - MEDIA_ROOT=/media
+    volumes:
+      - ./data:/app/data # persist the database
+      - ${MEDIA_HOST_PATH:-/media/tv}:/media:ro # host path → /media in container
+    restart: unless-stopped

@@ -1,0 +1,24 @@
+from __future__ import annotations
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+    # TheTVDB
+    tvdb_api_key: str = ""
+    tvdb_pin: str = ""
+
+    # Media
+    media_root: str = "/media/tv"
+
+    # Database
+    database_url: str = "sqlite+aiosqlite:///./data/tvtrac.db"
+
+    # App
+    app_host: str = "0.0.0.0"
+    app_port: int = 8000
+
+
+settings = Settings()

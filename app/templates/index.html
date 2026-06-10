@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>TV-Trac</title>
+        <style>
+            :root {
+                --bg: #1a1a2e;
+                --surface: #16213e;
+                --accent: #e94560;
+                --text: #eee;
+                --text-muted: #999;
+                --border: #333;
+            }
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                line-height: 1.6;
+            }
+            header {
+                background: var(--surface);
+                padding: 1.5rem 2rem;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            header h1 {
+                font-size: 1.5rem;
+                color: var(--accent);
+            }
+            main {
+                max-width: 960px;
+                margin: 2rem auto;
+                padding: 0 1rem;
+            }
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 1.5rem;
+                margin-bottom: 1rem;
+            }
+            .card h2 {
+                margin-bottom: 0.75rem;
+                font-size: 1.1rem;
+            }
+            .badge {
+                display: inline-block;
+                padding: 0.15rem 0.6rem;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 600;
+            }
+            .badge-watched {
+                background: #2ecc71;
+                color: #fff;
+            }
+            .badge-partial {
+                background: #f39c12;
+                color: #fff;
+            }
+            .badge-unwatched {
+                background: var(--border);
+                color: var(--text-muted);
+            }
+            button {
+                background: var(--accent);
+                color: #fff;
+                border: none;
+                padding: 0.5rem 1.2rem;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 0.9rem;
+            }
+            button:hover {
+                opacity: 0.85;
+            }
+            .filter-bar {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+                margin-bottom: 1rem;
+                flex-wrap: wrap;
+            }
+            .filter-bar input {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                color: var(--text);
+                padding: 0.5rem 2rem 0.5rem 0.8rem;
+                font-size: 0.9rem;
+                flex: 1;
+                min-width: 180px;
+            }
+            .search-wrapper {
+                position: relative;
+                flex: 1;
+                min-width: 180px;
+            }
+            .search-wrapper input {
+                width: 100%;
+            }
+            .search-clear {
+                position: absolute;
+                right: 6px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: none;
+                border: none;
+                color: var(--text-muted);
+                cursor: pointer;
+                font-size: 1rem;
+                padding: 2px 4px;
+                line-height: 1;
+                display: none;
+            }
+            .search-clear:hover {
+                color: var(--text);
+            }
+            .filter-bar input::placeholder {
+                color: var(--text-muted);
+            }
+            .filter-btn {
+                background: var(--surface);
+                color: var(--text-muted);
+                border: 1px solid var(--border);
+                padding: 0.4rem 1rem;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 0.8rem;
+                white-space: nowrap;
+            }
+            .filter-btn.active {
+                background: var(--accent);
+                color: #fff;
+                border-color: var(--accent);
+            }
+            .episode-list {
+                list-style: none;
+                margin-top: 0.5rem;
+            }
+            .episode-list li {
+                padding: 0.4rem 0;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .episode-list li:last-child {
+                border-bottom: none;
+            }
+            .loading {
+                color: var(--text-muted);
+                font-style: italic;
+            }
+            .error {
+                color: var(--accent);
+                white-space: pre-wrap;
+                font-size: 0.85rem;
+            }
+            .info-icon {
+                display: inline-block;
+                width: 16px;
+                height: 16px;
+                line-height: 16px;
+                text-align: center;
+                border-radius: 50%;
+                background: var(--border);
+                color: var(--text-muted);
+                font-size: 10px;
+                font-weight: bold;
+                cursor: pointer;
+                margin: 0 0.3rem;
+                vertical-align: middle;
+                user-select: none;
+            }
+            .info-icon:hover {
+                background: var(--accent);
+                color: #fff;
+            }
+            .notes-icon {
+                display: inline-block;
+                width: 18px;
+                height: 18px;
+                line-height: 18px;
+                text-align: center;
+                border: 1px solid var(--text-muted);
+                border-radius: 3px;
+                color: var(--text-muted);
+                cursor: pointer;
+                font-size: 10px;
+                font-weight: bold;
+                margin: 0 0.3rem;
+                vertical-align: middle;
+                user-select: none;
+            }
+            .notes-icon.has-notes {
+                background: #f1c40f;
+                border-color: #f1c40f;
+                color: #000;
+            }
+            .notes-editor {
+                margin-top: 0.5rem;
+            }
+            .notes-editor textarea {
+                width: 100%;
+                background: var(--bg);
+                color: var(--text);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 0.5rem;
+                font-size: 0.8rem;
+                resize: vertical;
+                min-height: 60px;
+                font-family: inherit;
+            }
+            .notes-editor button {
+                margin-top: 0.3rem;
+                font-size: 0.75rem;
+                padding: 0.25rem 0.8rem;
+            }
+            .popover {
+                position: fixed;
+                z-index: 1000;
+                background: #1e2a4a;
+                border: 1px solid var(--accent);
+                border-radius: 8px;
+                padding: 0.75rem 1rem;
+                max-width: 380px;
+                font-size: 0.85rem;
+                color: var(--text);
+                line-height: 1.5;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+                pointer-events: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>📺 TV-Trac</h1>
+            <div>
+                <span style="color: var(--text-muted); font-size: 0.85rem"
+                    >Media: {{ media_root }}</span
+                >
+                <button onclick="scanMedia()" style="margin-left: 1rem">
+                    🔍 Scan
+                </button>
+            </div>
+        </header>
+        <main>
+            <div class="filter-bar" id="filter-bar" style="display: none">
+                <div class="search-wrapper">
+                    <input
+                        type="text"
+                        id="search-input"
+                        placeholder="Search shows..."
+                        oninput="onSearchInput()"
+                    />
+                    <button
+                        class="search-clear"
+                        id="search-clear"
+                        onclick="clearSearch()"
+                    >
+                        ✕
+                    </button>
+                </div>
+                <button
+                    class="filter-btn active"
+                    onclick="setFilter('all', this)"
+                >
+                    All
+                </button>
+                <button class="filter-btn" onclick="setFilter('watched', this)">
+                    ✓ Watched
+                </button>
+                <button class="filter-btn" onclick="setFilter('partial', this)">
+                    ◐ Partial
+                </button>
+                <button
+                    class="filter-btn"
+                    onclick="setFilter('unwatched', this)"
+                >
+                    ○ Unwatched
+                </button>
+                <select
+                    id="sort-select"
+                    onchange="applyFilters()"
+                    style="
+                        background: var(--surface);
+                        color: var(--text);
+                        border: 1px solid var(--border);
+                        border-radius: 6px;
+                        padding: 0.4rem 0.6rem;
+                        font-size: 0.8rem;
+                        margin-left: auto;
+                    "
+                >
+                    <option value="alpha">A-Z</option>
+                    <option value="recent">Recently Added</option>
+                </select>
+            </div>
+            <div class="card">
+                <h2>
+                    Your Shows
+                    <span
+                        id="show-count"
+                        style="color: var(--text-muted); font-size: 0.85rem"
+                    ></span>
+                </h2>
+                <div id="shows-list" class="loading">Loading shows...</div>
+            </div>
+        </main>
+
+        <script>
+            const API = "/api/shows";
+            var allShows = [];
+            var currentFilter = "all";
+            var searchQuery = "";
+
+            async function apiFetch(url, opts) {
+                const resp = await fetch(url, opts);
+                if (!resp.ok) {
+                    const body = await resp.json().catch(function () {
+                        return null;
+                    });
+                    const err = new Error("HTTP " + resp.status);
+                    err.body = body;
+                    throw err;
+                }
+                return resp.json();
+            }
+
+            // ── Popover ─────────────────────────────────────────────────────
+
+            var activePopover = null;
+
+            function dismissPopover() {
+                if (activePopover) {
+                    activePopover.remove();
+                    activePopover = null;
+                }
+            }
+
+            document.addEventListener(
+                "click",
+                function (e) {
+                    if (e.target.classList.contains("info-icon")) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        if (activePopover) {
+                            dismissPopover();
+                            return;
+                        }
+                        var overview = e.target.getAttribute("data-overview");
+                        if (!overview) return;
+                        var pop = document.createElement("div");
+                        pop.className = "popover";
+                        pop.textContent = overview;
+                        document.body.appendChild(pop);
+                        var rect = e.target.getBoundingClientRect();
+                        var top = rect.bottom + 4;
+                        var left = Math.max(8, rect.left - 180);
+                        if (top + 120 > window.innerHeight)
+                            top = rect.top - 130;
+                        pop.style.top = top + "px";
+                        pop.style.left = left + "px";
+                        activePopover = pop;
+                        return;
+                    }
+                    if (activePopover) dismissPopover();
+                },
+                true,
+            );
+
+            // ── Filters ─────────────────────────────────────────────────────
+
+            function setFilter(filter, btn) {
+                currentFilter = filter;
+                document.querySelectorAll(".filter-btn").forEach(function (b) {
+                    b.classList.remove("active");
+                });
+                btn.classList.add("active");
+                applyFilters();
+            }
+
+            function onSearchInput() {
+                applyFilters();
+            }
+
+            function clearSearch() {
+                document.getElementById("search-input").value = "";
+                applyFilters();
+                document.getElementById("search-input").focus();
+            }
+
+            function toggleNotes(showId, iconEl, ev) {
+                ev.stopPropagation();
+                var card = iconEl.closest(".card");
+                var existing = card.querySelector(".notes-editor");
+                if (existing) {
+                    existing.remove();
+                    return;
+                }
+                var editor = document.createElement("div");
+                editor.className = "notes-editor";
+                editor.innerHTML =
+                    '<textarea id="notes-ta-' +
+                    showId +
+                    '" placeholder="Add notes...">' +
+                    escapeHtml(
+                        iconEl.title !== "Add notes" ? iconEl.title : "",
+                    ) +
+                    "</textarea>" +
+                    '<button onclick="saveNotes(' +
+                    showId +
+                    ', this)">Save</button> ' +
+                    '<button onclick="this.parentElement.remove()" style="background:var(--border)">Cancel</button>';
+                card.appendChild(editor);
+                var ta = document.getElementById("notes-ta-" + showId);
+                ta.focus();
+            }
+
+            async function saveNotes(showId, btn) {
+                var ta = document.getElementById("notes-ta-" + showId);
+                var notes = ta ? ta.value : "";
+                await apiFetch(
+                    API +
+                        "/" +
+                        showId +
+                        "/notes?notes=" +
+                        encodeURIComponent(notes),
+                    { method: "PATCH" },
+                );
+                // Update icon
+                var icon = document.querySelector(
+                    '.card[data-show-id="' + showId + '"] .notes-icon',
+                );
+                if (icon) {
+                    icon.className =
+                        "notes-icon" + (notes.trim() ? " has-notes" : "");
+                    icon.title = notes.trim() ? notes : "Add notes";
+                }
+                // Remove editor
+                btn.parentElement.remove();
+                // Refresh allShows
+                try {
+                    var shows = await apiFetch(API);
+                    var updated = shows.find(function (s) {
+                        return s.id === showId;
+                    });
+                    if (updated) {
+                        var existing = allShows.find(function (s) {
+                            return s.id === showId;
+                        });
+                        if (existing) existing.notes = updated.notes;
+                    }
+                } catch (e) {}
+            }
+
+            function applyFilters() {
+                searchQuery = document
+                    .getElementById("search-input")
+                    .value.toLowerCase();
+                // Show/hide clear button
+                document.getElementById("search-clear").style.display =
+                    searchQuery ? "block" : "none";
+                var filtered = allShows;
+                // Search filter
+                if (searchQuery) {
+                    filtered = filtered.filter(function (s) {
+                        return (
+                            s.title.toLowerCase().indexOf(searchQuery) !== -1
+                        );
+                    });
+                }
+                // Status filter
+                if (currentFilter === "watched") {
+                    filtered = filtered.filter(function (s) {
+                        return s.part_watched === "watched";
+                    });
+                } else if (currentFilter === "partial") {
+                    filtered = filtered.filter(function (s) {
+                        return s.part_watched === "partial";
+                    });
+                } else if (currentFilter === "unwatched") {
+                    filtered = filtered.filter(function (s) {
+                        return s.part_watched === "unwatched";
+                    });
+                }
+                document.getElementById("show-count").textContent =
+                    "(" + filtered.length + ")";
+                // Sort
+                var sortBy = document.getElementById("sort-select").value;
+                if (sortBy === "recent") {
+                    filtered = filtered.slice().sort(function (a, b) {
+                        return new Date(b.updated_at) - new Date(a.updated_at);
+                    });
+                }
+                document.getElementById("shows-list").innerHTML =
+                    renderShowList(filtered);
+            }
+
+            // ── Helpers ─────────────────────────────────────────────────────
+
+            function escapeHtml(str) {
+                var div = document.createElement("div");
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function infoIcon(overview) {
+                if (!overview) return "";
+                return (
+                    '<span class="info-icon" data-overview="' +
+                    escapeHtml(overview).replace(/"/g, "&quot;") +
+                    '" title="Overview">i</span>'
+                );
+            }
+
+            function watchBadgeClass(status) {
+                if (status === "watched") return "badge-watched";
+                if (status === "partial") return "badge-partial";
+                return "badge-unwatched";
+            }
+
+            function watchBadgeLabel(status) {
+                if (status === "watched") return "watched";
+                if (status === "partial") return "part watched";
+                return "unwatched";
+            }
+
+            function formatDate(isoStr) {
+                var d = new Date(isoStr + (isoStr.endsWith("Z") ? "" : "Z"));
+                var dd = String(d.getDate()).padStart(2, "0");
+                var mm = String(d.getMonth() + 1).padStart(2, "0");
+                var yyyy = d.getFullYear();
+                var hh = String(d.getHours()).padStart(2, "0");
+                var min = String(d.getMinutes()).padStart(2, "0");
+                var ss = String(d.getSeconds()).padStart(2, "0");
+                return (
+                    dd + "/" + mm + "/" + yyyy + " " + hh + ":" + min + ":" + ss
+                );
+            }
+
+            var MONTHS = [
+                "January",
+                "February",
+                "March",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December",
+            ];
+
+            function formatDateLong(dateStr) {
+                // Takes "2023-04-28" and returns "April 28, 2023"
+                if (!dateStr) return "";
+                var parts = dateStr.split("-");
+                if (parts.length !== 3) return dateStr;
+                var y = parseInt(parts[0]);
+                var m = parseInt(parts[1]);
+                var d = parseInt(parts[2]);
+                if (isNaN(y) || isNaN(m) || isNaN(d)) return dateStr;
+                return MONTHS[m - 1] + " " + d + ", " + y;
+            }
+
+            // ── Rendering ───────────────────────────────────────────────────
+
+            function renderShowList(shows) {
+                return shows
+                    .map(function (s) {
+                        return (
+                            '<div class="card" data-show-id="' +
+                            s.id +
+                            '" style="cursor:pointer" onclick="loadShow(' +
+                            s.id +
+                            ', this)">' +
+                            "<strong>" +
+                            escapeHtml(s.title) +
+                            "</strong>" +
+                            (s.first_aired
+                                ? ' <span style="color:var(--text-muted);font-size:0.8rem;">(' +
+                                  formatDateLong(s.first_aired) +
+                                  ")</span>"
+                                : "") +
+                            infoIcon(s.overview) +
+                            '<span class="notes-icon' +
+                            (s.notes ? " has-notes" : "") +
+                            '" onclick="event.stopPropagation(); toggleNotes(' +
+                            s.id +
+                            ', this, event)" title="' +
+                            (s.notes ? escapeHtml(s.notes) : "Add notes") +
+                            '">N</span>' +
+                            '<span class="badge ' +
+                            watchBadgeClass(s.part_watched) +
+                            '" style="margin-left:0.5rem;">' +
+                            watchBadgeLabel(s.part_watched) +
+                            "</span>" +
+                            '<div class="show-detail" style="display:none;margin-top:0.75rem"></div>' +
+                            "</div>"
+                        );
+                    })
+                    .join("");
+            }
+
+            function renderShowDetail(show, cardEl) {
+                return show.seasons
+                    .map(function (season) {
+                        var epHtml = season.episodes
+                            .map(function (ep) {
+                                return (
+                                    "<li>" +
+                                    "<span>" +
+                                    "S" +
+                                    String(season.season_number).padStart(
+                                        2,
+                                        "0",
+                                    ) +
+                                    "E" +
+                                    String(ep.episode_number).padStart(2, "0") +
+                                    " - " +
+                                    escapeHtml(
+                                        ep.title ||
+                                            "Episode " + ep.episode_number,
+                                    ) +
+                                    (ep.runtime
+                                        ? " (" + ep.runtime + "m)"
+                                        : "") +
+                                    (ep.air_date
+                                        ? ' <span style="color:var(--text-muted);font-size:0.7rem;">' +
+                                          formatDateLong(ep.air_date) +
+                                          "</span>"
+                                        : "") +
+                                    infoIcon(ep.overview) +
+                                    "</span>" +
+                                    '<span class="badge ' +
+                                    (ep.watched
+                                        ? "badge-watched"
+                                        : "badge-unwatched") +
+                                    '"' +
+                                    ' onclick="event.stopPropagation(); toggleWatched(' +
+                                    ep.id +
+                                    ", " +
+                                    !ep.watched +
+                                    ', event)"' +
+                                    ' style="cursor:pointer"' +
+                                    (ep.watched_at
+                                        ? ' title="Watched: ' +
+                                          formatDate(ep.watched_at) +
+                                          '"'
+                                        : "") +
+                                    ">" +
+                                    (ep.watched ? "✓ watched" : "unwatched") +
+                                    "</span>" +
+                                    "</li>"
+                                );
+                            })
+                            .join("");
+                        return (
+                            '<div style="margin-top:0.5rem">' +
+                            "<em>Season " +
+                            season.season_number +
+                            "</em>" +
+                            (season.created_at
+                                ? ' <span style="color:var(--text-muted);font-size:0.7rem;">added ' +
+                                  formatDateLong(season.created_at) +
+                                  "</span>"
+                                : "") +
+                            '<span class="badge ' +
+                            watchBadgeClass(season.part_watched) +
+                            '" style="margin-left:0.5rem;font-size:0.7rem;">' +
+                            watchBadgeLabel(season.part_watched) +
+                            "</span>" +
+                            '<ul class="episode-list">' +
+                            epHtml +
+                            "</ul>" +
+                            "</div>"
+                        );
+                    })
+                    .join("");
+            }
+
+            // ── Actions ─────────────────────────────────────────────────────
+
+            async function fetchShows() {
+                var el = document.getElementById("shows-list");
+                try {
+                    allShows = await apiFetch(API);
+                    document.getElementById("filter-bar").style.display =
+                        allShows.length ? "flex" : "none";
+                    applyFilters();
+                } catch (err) {
+                    var msg = err.message;
+                    if (err.body)
+                        msg += "\n" + JSON.stringify(err.body, null, 2);
+                    el.innerHTML =
+                        '<p class="error">Failed to load shows: ' +
+                        escapeHtml(msg) +
+                        "</p>";
+                }
+            }
+
+            async function loadShow(showId, cardEl, forceOpen) {
+                var detail = cardEl.querySelector(".show-detail");
+                if (!forceOpen && detail.style.display === "block") {
+                    detail.style.display = "none";
+                    return;
+                }
+                detail.style.display = "block";
+                detail.innerHTML = '<p class="loading">Loading...</p>';
+                try {
+                    var show = await apiFetch(API + "/" + showId);
+                    detail.innerHTML = renderShowDetail(show, cardEl);
+                } catch (err) {
+                    var msg = err.message;
+                    if (err.body)
+                        msg += "\n" + JSON.stringify(err.body, null, 2);
+                    detail.innerHTML =
+                        '<p class="error">Error: ' + escapeHtml(msg) + "</p>";
+                }
+            }
+
+            async function toggleWatched(episodeId, watched, event) {
+                await fetch(
+                    API +
+                        "/episodes/" +
+                        episodeId +
+                        "/watch?watched=" +
+                        watched,
+                    { method: "PATCH" },
+                );
+                var card = event.target.closest(".card");
+                if (card) {
+                    var showId = card.getAttribute("data-show-id");
+                    if (showId) loadShow(parseInt(showId), card, true);
+                }
+                refreshShowBadges();
+            }
+
+            async function refreshShowBadges() {
+                try {
+                    var shows = await apiFetch(API);
+                    // Update allShows for filters
+                    allShows = shows;
+                    var cards = document.querySelectorAll(
+                        ".card[data-show-id]",
+                    );
+                    cards.forEach(function (card) {
+                        var showId = parseInt(
+                            card.getAttribute("data-show-id"),
+                        );
+                        var show = shows.find(function (s) {
+                            return s.id === showId;
+                        });
+                        if (show) {
+                            var badge = card.querySelector(".badge");
+                            if (badge) {
+                                badge.className =
+                                    "badge " +
+                                    watchBadgeClass(show.part_watched);
+                                badge.textContent = watchBadgeLabel(
+                                    show.part_watched,
+                                );
+                            }
+                        }
+                    });
+                    document.getElementById("show-count").textContent =
+                        "(" + shows.length + ")";
+                } catch (e) {
+                    /* silent */
+                }
+            }
+
+            async function scanMedia() {
+                var el = document.getElementById("shows-list");
+                el.innerHTML = '<p class="loading">Scanning media root...</p>';
+                try {
+                    var data = await apiFetch("/api/scan", { method: "POST" });
+                    var count =
+                        data.shows_synced != null
+                            ? data.shows_synced
+                            : data._count || 0;
+                    var html =
+                        "<p>Found <strong>" + count + "</strong> show(s).";
+                    if (data.created != null)
+                        html += " Created: " + data.created + ".";
+                    if (data.updated != null)
+                        html += " Updated: " + data.updated + ".";
+                    if (data.deleted != null && data.deleted > 0)
+                        html += " 🗑️ Deleted: " + data.deleted + ".";
+                    html +=
+                        ' <button onclick="fetchShows()">Refresh</button></p>';
+                    if (data.shows && data.shows.length > 0) {
+                        html += data.shows
+                            .map(function (s) {
+                                var icon =
+                                    s.status === "created"
+                                        ? "🆕"
+                                        : s.status === "updated"
+                                          ? "✅"
+                                          : "❌";
+                                var extra = s.error
+                                    ? " — " + escapeHtml(s.error)
+                                    : "";
+                                var seasons = s.seasons
+                                    ? " (" + s.seasons.length + " seasons)"
+                                    : "";
+                                return (
+                                    '<p style="font-size:0.85rem;margin:0.25rem 0 0.25rem 1rem">' +
+                                    icon +
+                                    " " +
+                                    escapeHtml(s.title) +
+                                    seasons +
+                                    (s.tvdb_id
+                                        ? " (tvdb:" + s.tvdb_id + ")"
+                                        : "") +
+                                    extra +
+                                    "</p>"
+                                );
+                            })
+                            .join("");
+                    }
+                    el.innerHTML = html;
+                } catch (err) {
+                    var msg = err.message;
+                    if (err.body)
+                        msg += "\n" + JSON.stringify(err.body, null, 2);
+                    el.innerHTML =
+                        '<p class="error">Scan failed: ' +
+                        escapeHtml(msg) +
+                        "</p>";
+                }
+            }
+
+            fetchShows();
+        </script>
+    </body>
+</html>
