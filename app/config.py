@@ -10,8 +10,12 @@ class Settings(BaseSettings):
     tvdb_api_key: str = ""
     tvdb_pin: str = ""
 
+    # TMDB (for movies)
+    tmdb_api_key: str = ""
+
     # Media
     media_root: str = "/media/tv"
+    media_root_movies: str = "/media/movies"
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./data/tvtrac.db"

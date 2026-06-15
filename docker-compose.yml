@@ -7,9 +7,11 @@ services:
     env_file:
       - .env
     environment:
-      # Override MEDIA_ROOT inside the container to the mount point
-      - MEDIA_ROOT=/media
+      # Override paths inside the container to the mount points
+      - MEDIA_ROOT=/media/tv
+      - MEDIA_ROOT_MOVIES=/media/movies
     volumes:
-      - ./data:/app/data # persist the database
-      - ${MEDIA_HOST_PATH:-/media/tv}:/media:ro # host path → /media in container
+      - ./data:/app/data
+      - ${MEDIA_HOST_PATH:-/media/tv}:/media/tv:ro
+      - ${MEDIA_HOST_MOVIES:-/media/movies}:/media/movies:ro
     restart: unless-stopped

@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from app.config import settings
+from app.services.nfo import find_nfo
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,8 @@ class ScannedSeason:
 class ScannedShow:
     title: str
     folder_path: str
+    tvdb_id: int | None = None
+    tmdb_id: int | None = None
     seasons: dict[int, ScannedSeason] = field(default_factory=dict)
 
 
@@ -104,6 +107,16 @@ def scan_media_root() -> dict[str, ScannedShow]:
             continue
 
         show = ScannedShow(title=show_dir.name, folder_path=str(show_dir))
+
+        # Check for .nfo file for better title/ID matching
+        nfo = find_nfo(Path(show_dir))
+        if nfo:
+            if nfo.title:
+                show.title = nfo.title
+            if nfo.tvdb_id:
+                show.tvdb_id = nfo.tvdb_id
+            if nfo.tmdb_id:
+                show.tmdb_id = nfo.tmdb_id
 
         for season_dir in sorted(show_dir.iterdir()):
             if not season_dir.is_dir():

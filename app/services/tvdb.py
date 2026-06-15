@@ -64,6 +64,17 @@ class TVDBClient:
         resp.raise_for_status()
         return resp.json()["data"]  # list of series search results
 
+    async def search_movie(self, name: str) -> list[dict[str, Any]]:
+        """Search for a movie by name."""
+        client = await self._get_client()
+        resp = await client.get(
+            "/search",
+            params={"query": name, "type": "movie"},
+            headers=await self._headers(),
+        )
+        resp.raise_for_status()
+        return resp.json()["data"]
+
     async def get_show(self, tvdb_id: int) -> dict[str, Any]:
         """Get full show record by TVDB ID."""
         client = await self._get_client()
@@ -76,6 +87,15 @@ class TVDBClient:
         client = await self._get_client()
         resp = await client.get(
             f"/series/{tvdb_id}/extended", headers=await self._headers()
+        )
+        resp.raise_for_status()
+        return resp.json()["data"]
+
+    async def get_movie_extended(self, tvdb_id: int) -> dict[str, Any]:
+        """Get extended movie record."""
+        client = await self._get_client()
+        resp = await client.get(
+            f"/movies/{tvdb_id}/extended", headers=await self._headers()
         )
         resp.raise_for_status()
         return resp.json()["data"]

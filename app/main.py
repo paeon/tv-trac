@@ -12,7 +12,8 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import settings
 from app.database import init_db
-from app.routers import scan, shows, tvdb
+from app.models.movie import Movie  # noqa: F401 — register model
+from app.routers import movies, scan, shows, tvdb
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -56,6 +57,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(shows.router)
 app.include_router(scan.router)
 app.include_router(tvdb.router)
+app.include_router(movies.router)
 
 
 # ── Web UI ───────────────────────────────────────────────────────────────────
@@ -65,5 +67,10 @@ app.include_router(tvdb.router)
 async def index(request: Request):
     """Serve the main web UI."""
     return templates.TemplateResponse(
-        "index.html", {"request": request, "media_root": settings.media_root}
+        "index.html",
+        {
+            "request": request,
+            "media_tv": settings.media_root,
+            "media_movies": settings.media_root_movies,
+        },
     )

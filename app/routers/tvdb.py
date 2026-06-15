@@ -74,3 +74,22 @@ async def debug_show(tvdb_id: int):
         }
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"TheTVDB error: {exc}")
+
+
+@router.get("/debug-movie/{tvdb_id}")
+async def debug_movie(tvdb_id: int):
+    """Return the RAW movie extended response to see field names."""
+    try:
+        data = await tvdb.get_movie_extended(tvdb_id)
+        return {
+            "keys": list(data.keys()) if data else [],
+            "name": data.get("name"),
+            "overview": data.get("overview"),
+            "firstAired": data.get("firstAired"),
+            "releaseDate": data.get("releaseDate"),
+            "first_release": data.get("first_release"),
+            "runtime": data.get("runtime"),
+            "image": data.get("image"),
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"TheTVDB error: {exc}")

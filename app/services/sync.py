@@ -43,16 +43,7 @@ def _parse_tvdb_id(raw: Any) -> int | None:
 
 
 async def sync_shows(db: AsyncSession) -> dict[str, Any]:
-    """
-    Full scan-and-sync pipeline:
-
-    1. Scan the local media directory
-    2. For each show found, search TheTVDB and fetch metadata
-    3. Upsert Show, Seasons, and Episodes into the database
-    4. Mark episodes as watched if a local file exists
-
-    Works offline: if TVDB is unreachable, shows are still created from local data.
-    """
+    """Full scan-and-sync pipeline."""
     scanned = scan_media_root()
     if not scanned:
         return {
@@ -115,43 +106,60 @@ async def _sync_one_show(
     tvdb_overview: str | None = None
     tvdb_poster: str | None = None
     tvdb_first_aired: str | None = None
+    tvdb_slug: str | None = None
     tvdb_seasons: dict[int, int] = {}  # season_number -> tvdb_season_id
 
     if tvdb_available:
         try:
-            search_results = await tvdb.search_show(title)
-            if search_results:
-                # Pick the first result — could be improved with fuzzy matching
-                best_match = search_results[0]
-                tvdb_id = _parse_tvdb_id(
-                    best_match.get("id") or best_match.get("tvdb_id")
-                )
-                tvdb_overview = best_match.get("overview") or best_match.get(
-                    "description"
-                )
+            # If .nfo provided a TVDB ID, use it directly
+            if scanned_show.tvdb_id:
+                tvdb_id = scanned_show.tvdb_id
+                extended = await tvdb.get_show_extended(tvdb_id)
+                tvdb_overview = extended.get("overview") or extended.get("description")
                 tvdb_poster = (
-                    best_match.get("image_url")
-                    or best_match.get("image")
-                    or best_match.get("poster")
+                    extended.get("image")
+                    or extended.get("image_url")
+                    or extended.get("poster")
                 )
-
-                if tvdb_id:
-                    # Get extended show data (overview, poster, season IDs)
-                    extended = await tvdb.get_show_extended(tvdb_id)
-                    tvdb_overview = (
-                        tvdb_overview
-                        or extended.get("overview")
-                        or extended.get("description")
+                tvdb_first_aired = extended.get("firstAired") or extended.get(
+                    "first_aired"
+                )
+                tvdb_slug = extended.get("slug")
+            else:
+                search_results = await tvdb.search_show(title)
+                if search_results:
+                    # Pick the first result — could be improved with fuzzy matching
+                    best_match = search_results[0]
+                    tvdb_id = _parse_tvdb_id(
+                        best_match.get("id") or best_match.get("tvdb_id")
+                    )
+                    tvdb_overview = best_match.get("overview") or best_match.get(
+                        "description"
                     )
                     tvdb_poster = (
-                        tvdb_poster
-                        or extended.get("image")
-                        or extended.get("image_url")
-                        or extended.get("poster")
+                        best_match.get("image_url")
+                        or best_match.get("image")
+                        or best_match.get("poster")
                     )
-                    tvdb_first_aired = extended.get("firstAired") or extended.get(
-                        "first_aired"
-                    )
+
+                    if tvdb_id:
+                        # Get extended show data (overview, poster, season IDs)
+                        extended = await tvdb.get_show_extended(tvdb_id)
+                        tvdb_overview = (
+                            tvdb_overview
+                            or extended.get("overview")
+                            or extended.get("description")
+                        )
+                        tvdb_poster = (
+                            tvdb_poster
+                            or extended.get("image")
+                            or extended.get("image_url")
+                            or extended.get("poster")
+                        )
+                        tvdb_first_aired = extended.get("firstAired") or extended.get(
+                            "first_aired"
+                        )
+                        tvdb_slug = extended.get("slug")
                     # Build season_number -> tvdb_season_id map from the extended response
                     # Prefer Aired Order / official seasons over alternate orders
                     for s in extended.get("seasons") or []:
@@ -183,6 +191,7 @@ async def _sync_one_show(
             overview=tvdb_overview,
             poster_path=tvdb_poster,
             first_aired=tvdb_first_aired,
+            tvdb_slug=tvdb_slug,
         )
         db.add(show)
         await db.flush()
@@ -198,6 +207,8 @@ async def _sync_one_show(
             show.poster_path = tvdb_poster
         if tvdb_first_aired and not show.first_aired:
             show.first_aired = tvdb_first_aired
+        if tvdb_slug and not show.tvdb_slug:
+            show.tvdb_slug = tvdb_slug
 
     # ── 3. Upsert Seasons and Episodes ──────────────────────────────────
     season_summaries = []

@@ -22,6 +22,7 @@ class Show(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     tvdb_id: Mapped[int | None] = mapped_column(Integer, unique=True, nullable=True)
+    tvdb_slug: Mapped[str | None] = mapped_column(String(200), nullable=True)
     overview: Mapped[str | None] = mapped_column(Text, nullable=True)
     poster_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     first_aired: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -48,7 +49,6 @@ class Season(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False)
     season_number: Mapped[int] = mapped_column(Integer, nullable=False)
-    title: Mapped[str | None] = mapped_column(String(500), nullable=True)
     part_watched: Mapped[str] = mapped_column(
         String(10), default="unwatched", nullable=False
     )

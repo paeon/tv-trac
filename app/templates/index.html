@@ -38,6 +38,24 @@
                 font-size: 1.5rem;
                 color: var(--accent);
             }
+            nav {
+                display: flex;
+                gap: 0;
+                border-bottom: 1px solid var(--border);
+                margin-bottom: 1rem;
+            }
+            nav a {
+                color: var(--text-muted);
+                text-decoration: none;
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+                border-bottom: 2px solid transparent;
+                cursor: pointer;
+            }
+            nav a.active {
+                color: var(--accent);
+                border-bottom-color: var(--accent);
+            }
             main {
                 max-width: 960px;
                 margin: 2rem auto;
@@ -50,10 +68,6 @@
                 padding: 1.5rem;
                 margin-bottom: 1rem;
             }
-            .card h2 {
-                margin-bottom: 0.75rem;
-                font-size: 1.1rem;
-            }
             .badge {
                 display: inline-block;
                 padding: 0.15rem 0.6rem;
@@ -65,13 +79,13 @@
                 background: #2ecc71;
                 color: #fff;
             }
-            .badge-partial {
-                background: #f39c12;
-                color: #fff;
-            }
             .badge-unwatched {
                 background: var(--border);
                 color: var(--text-muted);
+            }
+            .badge-partial {
+                background: #f39c12;
+                color: #fff;
             }
             button {
                 background: var(--accent);
@@ -92,16 +106,6 @@
                 margin-bottom: 1rem;
                 flex-wrap: wrap;
             }
-            .filter-bar input {
-                background: var(--surface);
-                border: 1px solid var(--border);
-                border-radius: 6px;
-                color: var(--text);
-                padding: 0.5rem 2rem 0.5rem 0.8rem;
-                font-size: 0.9rem;
-                flex: 1;
-                min-width: 180px;
-            }
             .search-wrapper {
                 position: relative;
                 flex: 1;
@@ -109,6 +113,15 @@
             }
             .search-wrapper input {
                 width: 100%;
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                color: var(--text);
+                padding: 0.5rem 2rem 0.5rem 0.8rem;
+                font-size: 0.9rem;
+            }
+            .search-wrapper input::placeholder {
+                color: var(--text-muted);
             }
             .search-clear {
                 position: absolute;
@@ -121,14 +134,10 @@
                 cursor: pointer;
                 font-size: 1rem;
                 padding: 2px 4px;
-                line-height: 1;
                 display: none;
             }
             .search-clear:hover {
                 color: var(--text);
-            }
-            .filter-bar input::placeholder {
-                color: var(--text-muted);
             }
             .filter-btn {
                 background: var(--surface);
@@ -144,6 +153,41 @@
                 background: var(--accent);
                 color: #fff;
                 border-color: var(--accent);
+            }
+            .page-nav {
+                display: flex;
+                gap: 0.25rem;
+                align-items: center;
+                justify-content: center;
+                margin-top: 1rem;
+                flex-wrap: wrap;
+            }
+            .page-nav button {
+                background: var(--surface);
+                color: var(--text-muted);
+                border: 1px solid var(--border);
+                padding: 0.3rem 0.6rem;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 0.75rem;
+            }
+            .page-nav button.active {
+                background: var(--accent);
+                color: #fff;
+                border-color: var(--accent);
+            }
+            .page-nav button:disabled {
+                opacity: 0.3;
+                cursor: default;
+            }
+            .page-nav select {
+                background: var(--surface);
+                color: var(--text);
+                border: 1px solid var(--border);
+                border-radius: 4px;
+                padding: 0.3rem;
+                font-size: 0.75rem;
+                margin-left: 0.5rem;
             }
             .episode-list {
                 list-style: none;
@@ -209,6 +253,31 @@
                 border-color: #f1c40f;
                 color: #000;
             }
+            .thumb {
+                width: 40px;
+                height: 56px;
+                object-fit: cover;
+                border-radius: 4px;
+                margin-right: 0.75rem;
+                flex-shrink: 0;
+                background: var(--border);
+            }
+            .ext-link {
+                color: var(--text-muted);
+                text-decoration: none;
+                font-size: 0.7rem;
+                margin-left: 0.3rem;
+            }
+            .ext-link:hover {
+                color: var(--accent);
+            }
+            .card-title {
+                display: flex;
+                align-items: flex-start;
+            }
+            .card-title-text {
+                flex: 1;
+            }
             .notes-editor {
                 margin-top: 0.5rem;
             }
@@ -241,7 +310,24 @@
                 color: var(--text);
                 line-height: 1.5;
                 box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-                pointer-events: auto;
+            }
+            footer {
+                text-align: center;
+                padding: 1.5rem;
+                color: var(--text-muted);
+                font-size: 0.7rem;
+            }
+            footer img {
+                height: 20px;
+                vertical-align: middle;
+                margin: 0 0.5rem;
+            }
+            footer a {
+                color: var(--text-muted);
+                text-decoration: none;
+            }
+            footer a:hover {
+                color: var(--text);
             }
         </style>
     </head>
@@ -249,108 +335,224 @@
         <header>
             <h1>📺 TV-Trac</h1>
             <div>
-                <span style="color: var(--text-muted); font-size: 0.85rem"
-                    >Media: {{ media_root }}</span
+                <span
+                    id="media-label"
+                    style="color: var(--text-muted); font-size: 0.85rem"
+                    >TV: {{ media_tv }}</span
                 >
                 <button onclick="scanMedia()" style="margin-left: 1rem">
                     🔍 Scan
                 </button>
             </div>
         </header>
+        <nav>
+            <a class="active" onclick="showPage('shows', this)">📺 Shows</a>
+            <a onclick="showPage('movies', this)">🎬 Movies</a>
+        </nav>
         <main>
-            <div class="filter-bar" id="filter-bar" style="display: none">
-                <div class="search-wrapper">
-                    <input
-                        type="text"
-                        id="search-input"
-                        placeholder="Search shows..."
-                        oninput="onSearchInput()"
-                    />
+            <!-- SHOWS PAGE -->
+            <div id="page-shows">
+                <div
+                    class="filter-bar"
+                    id="shows-filter-bar"
+                    style="display: none"
+                >
+                    <div class="search-wrapper">
+                        <input
+                            type="text"
+                            id="shows-search"
+                            placeholder="Search shows..."
+                            oninput="applyShowFilters()"
+                        />
+                        <button
+                            class="search-clear"
+                            id="shows-search-clear"
+                            onclick="clearShowSearch()"
+                        >
+                            ✕
+                        </button>
+                    </div>
                     <button
-                        class="search-clear"
-                        id="search-clear"
-                        onclick="clearSearch()"
+                        class="filter-btn active"
+                        onclick="setShowFilter('all', this)"
                     >
-                        ✕
+                        All
                     </button>
+                    <button
+                        class="filter-btn"
+                        onclick="setShowFilter('watched', this)"
+                    >
+                        ✓ Watched
+                    </button>
+                    <button
+                        class="filter-btn"
+                        onclick="setShowFilter('partial', this)"
+                    >
+                        ◐ Partial
+                    </button>
+                    <button
+                        class="filter-btn"
+                        onclick="setShowFilter('unwatched', this)"
+                    >
+                        ○ Unwatched
+                    </button>
+                    <select
+                        id="shows-sort"
+                        onchange="applyShowFilters()"
+                        style="
+                            background: var(--surface);
+                            color: var(--text);
+                            border: 1px solid var(--border);
+                            border-radius: 6px;
+                            padding: 0.4rem 0.6rem;
+                            font-size: 0.8rem;
+                            margin-left: auto;
+                        "
+                    >
+                        <option value="alpha">A-Z</option>
+                        <option value="recent">Recently Added</option>
+                    </select>
                 </div>
-                <button
-                    class="filter-btn active"
-                    onclick="setFilter('all', this)"
-                >
-                    All
-                </button>
-                <button class="filter-btn" onclick="setFilter('watched', this)">
-                    ✓ Watched
-                </button>
-                <button class="filter-btn" onclick="setFilter('partial', this)">
-                    ◐ Partial
-                </button>
-                <button
-                    class="filter-btn"
-                    onclick="setFilter('unwatched', this)"
-                >
-                    ○ Unwatched
-                </button>
-                <select
-                    id="sort-select"
-                    onchange="applyFilters()"
-                    style="
-                        background: var(--surface);
-                        color: var(--text);
-                        border: 1px solid var(--border);
-                        border-radius: 6px;
-                        padding: 0.4rem 0.6rem;
-                        font-size: 0.8rem;
-                        margin-left: auto;
-                    "
-                >
-                    <option value="alpha">A-Z</option>
-                    <option value="recent">Recently Added</option>
-                </select>
+                <div class="card">
+                    <h2>
+                        Your Shows
+                        <span
+                            id="show-count"
+                            style="color: var(--text-muted); font-size: 0.85rem"
+                        ></span>
+                    </h2>
+                    <div id="shows-list" class="loading">Loading shows...</div>
+                    <div id="shows-pagination" class="page-nav"></div>
+                </div>
             </div>
-            <div class="card">
-                <h2>
-                    Your Shows
-                    <span
-                        id="show-count"
-                        style="color: var(--text-muted); font-size: 0.85rem"
-                    ></span>
-                </h2>
-                <div id="shows-list" class="loading">Loading shows...</div>
+
+            <!-- MOVIES PAGE -->
+            <div id="page-movies" style="display: none">
+                <div
+                    class="filter-bar"
+                    id="movies-filter-bar"
+                    style="display: none"
+                >
+                    <div class="search-wrapper">
+                        <input
+                            type="text"
+                            id="movies-search"
+                            placeholder="Search movies..."
+                            oninput="applyMovieFilters()"
+                        />
+                        <button
+                            class="search-clear"
+                            id="movies-search-clear"
+                            onclick="clearMovieSearch()"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <button
+                        class="filter-btn active"
+                        onclick="setMovieFilter('all', this)"
+                    >
+                        All
+                    </button>
+                    <button
+                        class="filter-btn"
+                        onclick="setMovieFilter('watched', this)"
+                    >
+                        ✓ Watched
+                    </button>
+                    <button
+                        class="filter-btn"
+                        onclick="setMovieFilter('unwatched', this)"
+                    >
+                        ○ Unwatched
+                    </button>
+                    <select
+                        id="movies-sort"
+                        onchange="applyMovieFilters()"
+                        style="
+                            background: var(--surface);
+                            color: var(--text);
+                            border: 1px solid var(--border);
+                            border-radius: 6px;
+                            padding: 0.4rem 0.6rem;
+                            font-size: 0.8rem;
+                            margin-left: auto;
+                        "
+                    >
+                        <option value="alpha">A-Z</option>
+                        <option value="recent">Recently Added</option>
+                    </select>
+                </div>
+                <div class="card">
+                    <h2>
+                        Your Movies
+                        <span
+                            id="movie-count"
+                            style="color: var(--text-muted); font-size: 0.85rem"
+                        ></span>
+                    </h2>
+                    <div id="movies-list" class="loading">
+                        Loading movies...
+                    </div>
+                    <div id="movies-pagination" class="page-nav"></div>
+                </div>
             </div>
         </main>
 
+        <footer>
+            <span>
+                TV data provided by
+                <a href="https://thetvdb.com" target="_blank">TheTVDB</a>. Movie
+                data provided by
+                <a href="https://www.themoviedb.org" target="_blank">TMDB</a>.
+            </span>
+        </footer>
+
         <script>
-            const API = "/api/shows";
-            var allShows = [];
-            var currentFilter = "all";
-            var searchQuery = "";
+            // ── Navigation ─────────────────────────────────────────────────
+            function showPage(page, link) {
+                document.querySelectorAll("nav a").forEach(function (a) {
+                    a.classList.remove("active");
+                });
+                link.classList.add("active");
+                document.getElementById("page-shows").style.display =
+                    page === "shows" ? "block" : "none";
+                document.getElementById("page-movies").style.display =
+                    page === "movies" ? "block" : "none";
+                document.getElementById("media-label").textContent =
+                    page === "movies"
+                        ? "Movies: /media/movies"
+                        : "TV: /media/tv";
+                if (page === "movies" && allMovies.length === 0) fetchMovies();
+            }
+
+            // ── API ────────────────────────────────────────────────────────
+            var SHOWS_API = "/api/shows";
+            var MOVIES_API = "/api/movies";
+            var allShows = [],
+                allMovies = [];
 
             async function apiFetch(url, opts) {
-                const resp = await fetch(url, opts);
+                var resp = await fetch(url, opts);
                 if (!resp.ok) {
-                    const body = await resp.json().catch(function () {
+                    var body = await resp.json().catch(function () {
                         return null;
                     });
-                    const err = new Error("HTTP " + resp.status);
+                    var err = new Error("HTTP " + resp.status);
                     err.body = body;
                     throw err;
                 }
                 return resp.json();
             }
 
-            // ── Popover ─────────────────────────────────────────────────────
-
+            // ── Popover ────────────────────────────────────────────────────
             var activePopover = null;
-
             function dismissPopover() {
                 if (activePopover) {
                     activePopover.remove();
                     activePopover = null;
                 }
             }
-
             document.addEventListener(
                 "click",
                 function (e) {
@@ -368,8 +570,8 @@
                         pop.textContent = overview;
                         document.body.appendChild(pop);
                         var rect = e.target.getBoundingClientRect();
-                        var top = rect.bottom + 4;
-                        var left = Math.max(8, rect.left - 180);
+                        var top = rect.bottom + 4,
+                            left = Math.max(8, rect.left - 180);
                         if (top + 120 > window.innerHeight)
                             top = rect.top - 130;
                         pop.style.top = top + "px";
@@ -382,28 +584,69 @@
                 true,
             );
 
-            // ── Filters ─────────────────────────────────────────────────────
-
-            function setFilter(filter, btn) {
-                currentFilter = filter;
-                document.querySelectorAll(".filter-btn").forEach(function (b) {
-                    b.classList.remove("active");
-                });
-                btn.classList.add("active");
-                applyFilters();
+            // ── Helpers ────────────────────────────────────────────────────
+            function escapeHtml(s) {
+                var d = document.createElement("div");
+                d.textContent = s;
+                return d.innerHTML;
+            }
+            function infoIcon(overview) {
+                if (!overview) return "";
+                return (
+                    '<span class="info-icon" data-overview="' +
+                    escapeHtml(overview).replace(/"/g, "&quot;") +
+                    '" title="Overview">i</span>'
+                );
+            }
+            function watchBadgeClass(s) {
+                if (s === "watched") return "badge-watched";
+                if (s === "partial") return "badge-partial";
+                return "badge-unwatched";
+            }
+            function watchBadgeLabel(s) {
+                if (s === "watched") return "watched";
+                if (s === "partial") return "part watched";
+                return "unwatched";
+            }
+            var MONTHS = [
+                "Jan",
+                "Feb",
+                "Mar",
+                "Apr",
+                "May",
+                "Jun",
+                "Jul",
+                "Aug",
+                "Sep",
+                "Oct",
+                "Nov",
+                "Dec",
+            ];
+            function formatDateLong(d) {
+                if (!d) return "";
+                var p = d.split("-");
+                if (p.length !== 3) return d;
+                var y = parseInt(p[0]),
+                    m = parseInt(p[1]),
+                    dd = parseInt(p[2]);
+                if (isNaN(y) || isNaN(m) || isNaN(dd)) return d;
+                return MONTHS[m - 1] + " " + dd + ", " + y;
+            }
+            function formatDate(isoStr) {
+                var dt = new Date(isoStr + (isoStr.endsWith("Z") ? "" : "Z"));
+                var dd = String(dt.getDate()).padStart(2, "0"),
+                    mm = String(dt.getMonth() + 1).padStart(2, "0"),
+                    yyyy = dt.getFullYear(),
+                    hh = String(dt.getHours()).padStart(2, "0"),
+                    min = String(dt.getMinutes()).padStart(2, "0"),
+                    ss = String(dt.getSeconds()).padStart(2, "0");
+                return (
+                    dd + "/" + mm + "/" + yyyy + " " + hh + ":" + min + ":" + ss
+                );
             }
 
-            function onSearchInput() {
-                applyFilters();
-            }
-
-            function clearSearch() {
-                document.getElementById("search-input").value = "";
-                applyFilters();
-                document.getElementById("search-input").focus();
-            }
-
-            function toggleNotes(showId, iconEl, ev) {
+            // ── Notes ──────────────────────────────────────────────────────
+            function toggleNotes(id, iconEl, ev, api) {
                 ev.stopPropagation();
                 var card = iconEl.closest(".card");
                 var existing = card.querySelector(".notes-editor");
@@ -415,172 +658,111 @@
                 editor.className = "notes-editor";
                 editor.innerHTML =
                     '<textarea id="notes-ta-' +
-                    showId +
+                    id +
                     '" placeholder="Add notes...">' +
                     escapeHtml(
                         iconEl.title !== "Add notes" ? iconEl.title : "",
                     ) +
-                    "</textarea>" +
-                    '<button onclick="saveNotes(' +
-                    showId +
-                    ', this)">Save</button> ' +
-                    '<button onclick="this.parentElement.remove()" style="background:var(--border)">Cancel</button>';
+                    '</textarea><button onclick="saveNotes(' +
+                    id +
+                    ",this,'" +
+                    api +
+                    '\')">Save</button> <button onclick="this.parentElement.remove()" style="background:var(--border)">Cancel</button>';
                 card.appendChild(editor);
-                var ta = document.getElementById("notes-ta-" + showId);
-                ta.focus();
+                document.getElementById("notes-ta-" + id).focus();
             }
-
-            async function saveNotes(showId, btn) {
-                var ta = document.getElementById("notes-ta-" + showId);
+            async function saveNotes(id, btn, api) {
+                var ta = document.getElementById("notes-ta-" + id);
                 var notes = ta ? ta.value : "";
                 await apiFetch(
-                    API +
+                    api +
                         "/" +
-                        showId +
+                        id +
                         "/notes?notes=" +
                         encodeURIComponent(notes),
                     { method: "PATCH" },
                 );
-                // Update icon
                 var icon = document.querySelector(
-                    '.card[data-show-id="' + showId + '"] .notes-icon',
+                    '.card[data-show-id="' +
+                        id +
+                        '"] .notes-icon, .card[data-movie-id="' +
+                        id +
+                        '"] .notes-icon',
                 );
                 if (icon) {
                     icon.className =
                         "notes-icon" + (notes.trim() ? " has-notes" : "");
                     icon.title = notes.trim() ? notes : "Add notes";
                 }
-                // Remove editor
                 btn.parentElement.remove();
-                // Refresh allShows
-                try {
-                    var shows = await apiFetch(API);
-                    var updated = shows.find(function (s) {
-                        return s.id === showId;
-                    });
-                    if (updated) {
-                        var existing = allShows.find(function (s) {
-                            return s.id === showId;
-                        });
-                        if (existing) existing.notes = updated.notes;
-                    }
-                } catch (e) {}
             }
 
-            function applyFilters() {
-                searchQuery = document
-                    .getElementById("search-input")
-                    .value.toLowerCase();
-                // Show/hide clear button
-                document.getElementById("search-clear").style.display =
-                    searchQuery ? "block" : "none";
-                var filtered = allShows;
-                // Search filter
-                if (searchQuery) {
-                    filtered = filtered.filter(function (s) {
-                        return (
-                            s.title.toLowerCase().indexOf(searchQuery) !== -1
-                        );
+            // ── SHOWS ──────────────────────────────────────────────────────
+            var showFilter = "all",
+                showSearch = "",
+                showCurrentPage = 1,
+                showPerPage = 10;
+            function setShowFilter(f, btn) {
+                showFilter = f;
+                document
+                    .querySelectorAll("#page-shows .filter-btn")
+                    .forEach(function (b) {
+                        b.classList.remove("active");
                     });
-                }
-                // Status filter
-                if (currentFilter === "watched") {
+                btn.classList.add("active");
+                applyShowFilters();
+            }
+            function clearShowSearch() {
+                document.getElementById("shows-search").value = "";
+                applyShowFilters();
+                document.getElementById("shows-search").focus();
+            }
+            function applyShowFilters() {
+                showSearch = document
+                    .getElementById("shows-search")
+                    .value.toLowerCase();
+                document.getElementById("shows-search-clear").style.display =
+                    showSearch ? "block" : "none";
+                var filtered = allShows;
+                if (showSearch)
+                    filtered = filtered.filter(function (s) {
+                        return s.title.toLowerCase().indexOf(showSearch) !== -1;
+                    });
+                if (showFilter === "watched")
                     filtered = filtered.filter(function (s) {
                         return s.part_watched === "watched";
                     });
-                } else if (currentFilter === "partial") {
+                else if (showFilter === "partial")
                     filtered = filtered.filter(function (s) {
                         return s.part_watched === "partial";
                     });
-                } else if (currentFilter === "unwatched") {
+                else if (showFilter === "unwatched")
                     filtered = filtered.filter(function (s) {
                         return s.part_watched === "unwatched";
                     });
-                }
-                document.getElementById("show-count").textContent =
-                    "(" + filtered.length + ")";
-                // Sort
-                var sortBy = document.getElementById("sort-select").value;
-                if (sortBy === "recent") {
+                var sort = document.getElementById("shows-sort").value;
+                if (sort === "recent")
                     filtered = filtered.slice().sort(function (a, b) {
                         return new Date(b.updated_at) - new Date(a.updated_at);
                     });
-                }
+                document.getElementById("show-count").textContent =
+                    "(" + filtered.length + ")";
+                // Paginate
+                showCurrentPage = Math.min(
+                    showCurrentPage,
+                    Math.ceil(filtered.length / showPerPage) || 1,
+                );
+                var start = (showCurrentPage - 1) * showPerPage;
+                var paged = filtered.slice(start, start + showPerPage);
                 document.getElementById("shows-list").innerHTML =
-                    renderShowList(filtered);
-            }
-
-            // ── Helpers ─────────────────────────────────────────────────────
-
-            function escapeHtml(str) {
-                var div = document.createElement("div");
-                div.textContent = str;
-                return div.innerHTML;
-            }
-
-            function infoIcon(overview) {
-                if (!overview) return "";
-                return (
-                    '<span class="info-icon" data-overview="' +
-                    escapeHtml(overview).replace(/"/g, "&quot;") +
-                    '" title="Overview">i</span>'
+                    renderShowList(paged);
+                renderPagination(
+                    "shows",
+                    filtered.length,
+                    showCurrentPage,
+                    showPerPage,
                 );
             }
-
-            function watchBadgeClass(status) {
-                if (status === "watched") return "badge-watched";
-                if (status === "partial") return "badge-partial";
-                return "badge-unwatched";
-            }
-
-            function watchBadgeLabel(status) {
-                if (status === "watched") return "watched";
-                if (status === "partial") return "part watched";
-                return "unwatched";
-            }
-
-            function formatDate(isoStr) {
-                var d = new Date(isoStr + (isoStr.endsWith("Z") ? "" : "Z"));
-                var dd = String(d.getDate()).padStart(2, "0");
-                var mm = String(d.getMonth() + 1).padStart(2, "0");
-                var yyyy = d.getFullYear();
-                var hh = String(d.getHours()).padStart(2, "0");
-                var min = String(d.getMinutes()).padStart(2, "0");
-                var ss = String(d.getSeconds()).padStart(2, "0");
-                return (
-                    dd + "/" + mm + "/" + yyyy + " " + hh + ":" + min + ":" + ss
-                );
-            }
-
-            var MONTHS = [
-                "January",
-                "February",
-                "March",
-                "April",
-                "May",
-                "June",
-                "July",
-                "August",
-                "September",
-                "October",
-                "November",
-                "December",
-            ];
-
-            function formatDateLong(dateStr) {
-                // Takes "2023-04-28" and returns "April 28, 2023"
-                if (!dateStr) return "";
-                var parts = dateStr.split("-");
-                if (parts.length !== 3) return dateStr;
-                var y = parseInt(parts[0]);
-                var m = parseInt(parts[1]);
-                var d = parseInt(parts[2]);
-                if (isNaN(y) || isNaN(m) || isNaN(d)) return dateStr;
-                return MONTHS[m - 1] + " " + d + ", " + y;
-            }
-
-            // ── Rendering ───────────────────────────────────────────────────
-
             function renderShowList(shows) {
                 return shows
                     .map(function (s) {
@@ -589,21 +771,35 @@
                             s.id +
                             '" style="cursor:pointer" onclick="loadShow(' +
                             s.id +
-                            ', this)">' +
+                            ',this)">' +
+                            '<div class="card-title">' +
+                            (s.poster_path
+                                ? '<img class="thumb" src="' +
+                                  s.poster_path +
+                                  '" onerror="this.style.display=\'none\'">'
+                                : "") +
+                            '<div class="card-title-text">' +
                             "<strong>" +
                             escapeHtml(s.title) +
+                            (s.first_aired &&
+                            s.title.indexOf(s.first_aired.substring(0, 4)) ===
+                                -1
+                                ? " (" + s.first_aired.substring(0, 4) + ")"
+                                : "") +
                             "</strong>" +
                             (s.first_aired
-                                ? ' <span style="color:var(--text-muted);font-size:0.8rem;">(' +
+                                ? ' <span style="color:var(--text-muted);font-size:0.8rem;">' +
                                   formatDateLong(s.first_aired) +
-                                  ")</span>"
+                                  "</span>"
                                 : "") +
                             infoIcon(s.overview) +
                             '<span class="notes-icon' +
                             (s.notes ? " has-notes" : "") +
-                            '" onclick="event.stopPropagation(); toggleNotes(' +
+                            '" onclick="event.stopPropagation();toggleNotes(' +
                             s.id +
-                            ', this, event)" title="' +
+                            ",this,event,'" +
+                            SHOWS_API +
+                            '\')" title="' +
                             (s.notes ? escapeHtml(s.notes) : "Add notes") +
                             '">N</span>' +
                             '<span class="badge ' +
@@ -611,22 +807,24 @@
                             '" style="margin-left:0.5rem;">' +
                             watchBadgeLabel(s.part_watched) +
                             "</span>" +
-                            '<div class="show-detail" style="display:none;margin-top:0.75rem"></div>' +
-                            "</div>"
+                            (s.tvdb_slug
+                                ? '<a class="ext-link" href="https://thetvdb.com/series/' +
+                                  s.tvdb_slug +
+                                  '" target="_blank" onclick="event.stopPropagation()" title="View on TheTVDB">↗</a>'
+                                : "") +
+                            "</div></div>" +
+                            '<div class="show-detail" style="display:none;margin-top:0.75rem"></div></div>'
                         );
                     })
                     .join("");
             }
-
             function renderShowDetail(show, cardEl) {
                 return show.seasons
                     .map(function (season) {
                         var epHtml = season.episodes
                             .map(function (ep) {
                                 return (
-                                    "<li>" +
-                                    "<span>" +
-                                    "S" +
+                                    "<li><span>S" +
                                     String(season.season_number).padStart(
                                         2,
                                         "0",
@@ -648,17 +846,23 @@
                                         : "") +
                                     infoIcon(ep.overview) +
                                     "</span>" +
+                                    '<span style="margin-left:auto;display:flex;align-items:center;gap:0.3rem;flex-shrink:0;">' +
+                                    (ep.watched_at
+                                        ? '<span style="color:var(--text-muted);font-size:0.65rem;">(' +
+                                          formatDateLong(
+                                              ep.watched_at.substring(0, 10),
+                                          ) +
+                                          ")</span>"
+                                        : "") +
                                     '<span class="badge ' +
                                     (ep.watched
                                         ? "badge-watched"
                                         : "badge-unwatched") +
-                                    '"' +
-                                    ' onclick="event.stopPropagation(); toggleWatched(' +
+                                    '" onclick="event.stopPropagation();toggleShowEp(' +
                                     ep.id +
-                                    ", " +
+                                    "," +
                                     !ep.watched +
-                                    ', event)"' +
-                                    ' style="cursor:pointer"' +
+                                    ',event)" style="cursor:pointer"' +
                                     (ep.watched_at
                                         ? ' title="Watched: ' +
                                           formatDate(ep.watched_at) +
@@ -666,14 +870,12 @@
                                         : "") +
                                     ">" +
                                     (ep.watched ? "✓ watched" : "unwatched") +
-                                    "</span>" +
-                                    "</li>"
+                                    "</span></span></li>"
                                 );
                             })
                             .join("");
                         return (
-                            '<div style="margin-top:0.5rem">' +
-                            "<em>Season " +
+                            '<div style="margin-top:0.5rem"><em>Season ' +
                             season.season_number +
                             "</em>" +
                             (season.created_at
@@ -685,36 +887,101 @@
                             watchBadgeClass(season.part_watched) +
                             '" style="margin-left:0.5rem;font-size:0.7rem;">' +
                             watchBadgeLabel(season.part_watched) +
-                            "</span>" +
-                            '<ul class="episode-list">' +
+                            '</span><ul class="episode-list">' +
                             epHtml +
-                            "</ul>" +
-                            "</div>"
+                            "</ul></div>"
                         );
                     })
                     .join("");
             }
 
-            // ── Actions ─────────────────────────────────────────────────────
+            function renderPagination(type, total, page, perPage) {
+                var el = document.getElementById(type + "-pagination");
+                var pages = Math.ceil(total / perPage) || 1;
+                var html = "";
+                if (total > perPage) {
+                    html +=
+                        "<button onclick=\"goPage('" +
+                        type +
+                        "', " +
+                        (page - 1) +
+                        ')" ' +
+                        (page <= 1 ? "disabled" : "") +
+                        ">« Prev</button>";
+                    var start = Math.max(1, page - 2);
+                    var end = Math.min(pages, page + 2);
+                    for (var i = start; i <= end; i++) {
+                        html +=
+                            '<button class="' +
+                            (i === page ? "active" : "") +
+                            '" onclick="goPage(\'' +
+                            type +
+                            "', " +
+                            i +
+                            ')">' +
+                            i +
+                            "</button>";
+                    }
+                    html +=
+                        "<button onclick=\"goPage('" +
+                        type +
+                        "', " +
+                        (page + 1) +
+                        ')" ' +
+                        (page >= pages ? "disabled" : "") +
+                        ">Next »</button>";
+                }
+                html +=
+                    "<select onchange=\"goPerPage('" +
+                    type +
+                    '\', this.value)"><option value="10"' +
+                    (perPage === 10 ? " selected" : "") +
+                    '>10</option><option value="25"' +
+                    (perPage === 25 ? " selected" : "") +
+                    '>25</option><option value="50"' +
+                    (perPage === 50 ? " selected" : "") +
+                    '>50</option><option value="100"' +
+                    (perPage === 100 ? " selected" : "") +
+                    ">100</option></select>";
+                el.innerHTML = html;
+            }
 
-            async function fetchShows() {
-                var el = document.getElementById("shows-list");
-                try {
-                    allShows = await apiFetch(API);
-                    document.getElementById("filter-bar").style.display =
-                        allShows.length ? "flex" : "none";
-                    applyFilters();
-                } catch (err) {
-                    var msg = err.message;
-                    if (err.body)
-                        msg += "\n" + JSON.stringify(err.body, null, 2);
-                    el.innerHTML =
-                        '<p class="error">Failed to load shows: ' +
-                        escapeHtml(msg) +
-                        "</p>";
+            function goPage(type, p) {
+                if (type === "shows") {
+                    showCurrentPage = p;
+                    applyShowFilters();
+                } else {
+                    moviePage = p;
+                    applyMovieFilters();
                 }
             }
 
+            function goPerPage(type, n) {
+                n = parseInt(n);
+                if (type === "shows") {
+                    showPerPage = n;
+                    showCurrentPage = 1;
+                    applyShowFilters();
+                } else {
+                    moviePerPage = n;
+                    moviePage = 1;
+                    applyMovieFilters();
+                }
+            }
+
+            async function fetchShows() {
+                try {
+                    allShows = await apiFetch(SHOWS_API);
+                    document.getElementById("shows-filter-bar").style.display =
+                        allShows.length ? "flex" : "none";
+                    applyShowFilters();
+                } catch (e) {
+                    document.getElementById("shows-list").innerHTML =
+                        '<p class="error">Failed: ' +
+                        escapeHtml(e.message) +
+                        "</p>";
+                }
+            }
             async function loadShow(showId, cardEl, forceOpen) {
                 var detail = cardEl.querySelector(".show-detail");
                 if (!forceOpen && detail.style.display === "block") {
@@ -724,71 +991,230 @@
                 detail.style.display = "block";
                 detail.innerHTML = '<p class="loading">Loading...</p>';
                 try {
-                    var show = await apiFetch(API + "/" + showId);
+                    var show = await apiFetch(SHOWS_API + "/" + showId);
                     detail.innerHTML = renderShowDetail(show, cardEl);
-                } catch (err) {
-                    var msg = err.message;
-                    if (err.body)
-                        msg += "\n" + JSON.stringify(err.body, null, 2);
+                } catch (e) {
                     detail.innerHTML =
-                        '<p class="error">Error: ' + escapeHtml(msg) + "</p>";
+                        '<p class="error">' + escapeHtml(e.message) + "</p>";
                 }
             }
-
-            async function toggleWatched(episodeId, watched, event) {
+            async function toggleShowEp(epId, watched, ev) {
                 await fetch(
-                    API +
+                    SHOWS_API +
                         "/episodes/" +
-                        episodeId +
+                        epId +
                         "/watch?watched=" +
                         watched,
                     { method: "PATCH" },
                 );
-                var card = event.target.closest(".card");
+                var card = ev.target.closest(".card");
                 if (card) {
-                    var showId = card.getAttribute("data-show-id");
-                    if (showId) loadShow(parseInt(showId), card, true);
+                    var sid = card.getAttribute("data-show-id");
+                    if (sid) loadShow(parseInt(sid), card, true);
                 }
                 refreshShowBadges();
             }
-
             async function refreshShowBadges() {
                 try {
-                    var shows = await apiFetch(API);
-                    // Update allShows for filters
+                    var shows = await apiFetch(SHOWS_API);
                     allShows = shows;
-                    var cards = document.querySelectorAll(
-                        ".card[data-show-id]",
-                    );
-                    cards.forEach(function (card) {
-                        var showId = parseInt(
-                            card.getAttribute("data-show-id"),
-                        );
-                        var show = shows.find(function (s) {
-                            return s.id === showId;
-                        });
-                        if (show) {
-                            var badge = card.querySelector(".badge");
-                            if (badge) {
-                                badge.className =
-                                    "badge " +
-                                    watchBadgeClass(show.part_watched);
-                                badge.textContent = watchBadgeLabel(
-                                    show.part_watched,
-                                );
-                            }
-                        }
-                    });
                     document.getElementById("show-count").textContent =
                         "(" + shows.length + ")";
-                } catch (e) {
-                    /* silent */
-                }
+                    document
+                        .querySelectorAll(".card[data-show-id]")
+                        .forEach(function (card) {
+                            var sid = parseInt(
+                                card.getAttribute("data-show-id"),
+                            );
+                            var s = shows.find(function (x) {
+                                return x.id === sid;
+                            });
+                            if (s) {
+                                var b = card.querySelector(".badge");
+                                if (b) {
+                                    b.className =
+                                        "badge " +
+                                        watchBadgeClass(s.part_watched);
+                                    b.textContent = watchBadgeLabel(
+                                        s.part_watched,
+                                    );
+                                }
+                            }
+                        });
+                } catch (e) {}
             }
 
+            // ── MOVIES ──────────────────────────────────────────────────────
+            var movieFilter = "all",
+                movieSearch = "",
+                moviePage = 1,
+                moviePerPage = 10;
+            function setMovieFilter(f, btn) {
+                movieFilter = f;
+                document
+                    .querySelectorAll("#page-movies .filter-btn")
+                    .forEach(function (b) {
+                        b.classList.remove("active");
+                    });
+                btn.classList.add("active");
+                applyMovieFilters();
+            }
+            function clearMovieSearch() {
+                document.getElementById("movies-search").value = "";
+                applyMovieFilters();
+                document.getElementById("movies-search").focus();
+            }
+            function applyMovieFilters() {
+                movieSearch = document
+                    .getElementById("movies-search")
+                    .value.toLowerCase();
+                document.getElementById("movies-search-clear").style.display =
+                    movieSearch ? "block" : "none";
+                var filtered = allMovies;
+                if (movieSearch)
+                    filtered = filtered.filter(function (m) {
+                        return (
+                            m.title.toLowerCase().indexOf(movieSearch) !== -1
+                        );
+                    });
+                if (movieFilter === "watched")
+                    filtered = filtered.filter(function (m) {
+                        return m.watched;
+                    });
+                else if (movieFilter === "unwatched")
+                    filtered = filtered.filter(function (m) {
+                        return !m.watched;
+                    });
+                var sort = document.getElementById("movies-sort").value;
+                if (sort === "recent")
+                    filtered = filtered.slice().sort(function (a, b) {
+                        return new Date(b.updated_at) - new Date(a.updated_at);
+                    });
+                document.getElementById("movie-count").textContent =
+                    "(" + filtered.length + ")";
+                moviePage = Math.min(
+                    moviePage,
+                    Math.ceil(filtered.length / moviePerPage) || 1,
+                );
+                var start = (moviePage - 1) * moviePerPage;
+                var paged = filtered.slice(start, start + moviePerPage);
+                document.getElementById("movies-list").innerHTML =
+                    renderMovieList(paged);
+                renderPagination(
+                    "movies",
+                    filtered.length,
+                    moviePage,
+                    moviePerPage,
+                );
+            }
+            function renderMovieList(movies) {
+                return movies
+                    .map(function (m) {
+                        return (
+                            '<div class="card" data-movie-id="' +
+                            m.id +
+                            '">' +
+                            '<div class="card-title">' +
+                            (m.poster_path
+                                ? '<img class="thumb" src="' +
+                                  m.poster_path +
+                                  '" onerror="this.style.display=\'none\'">'
+                                : "") +
+                            '<div class="card-title-text">' +
+                            "<strong>" +
+                            escapeHtml(m.title) +
+                            (m.first_aired &&
+                            m.title.indexOf(m.first_aired.substring(0, 4)) ===
+                                -1
+                                ? " (" + m.first_aired.substring(0, 4) + ")"
+                                : "") +
+                            "</strong>" +
+                            (m.first_aired
+                                ? ' <span style="color:var(--text-muted);font-size:0.8rem;">' +
+                                  formatDateLong(m.first_aired) +
+                                  "</span>"
+                                : "") +
+                            (m.runtime
+                                ? ' <span style="color:var(--text-muted);font-size:0.75rem;">' +
+                                  m.runtime +
+                                  "m</span>"
+                                : "") +
+                            infoIcon(m.overview) +
+                            '<span class="notes-icon' +
+                            (m.notes ? " has-notes" : "") +
+                            '" onclick="event.stopPropagation();toggleNotes(' +
+                            m.id +
+                            ",this,event,'" +
+                            MOVIES_API +
+                            '\')" title="' +
+                            (m.notes ? escapeHtml(m.notes) : "Add notes") +
+                            '">N</span>' +
+                            '<span class="badge ' +
+                            (m.watched ? "badge-watched" : "badge-unwatched") +
+                            '" onclick="toggleMovieWatched(' +
+                            m.id +
+                            "," +
+                            !m.watched +
+                            ',event)" style="cursor:pointer;margin-left:0.5rem;"' +
+                            (m.watched_at
+                                ? ' title="Watched: ' +
+                                  formatDate(m.watched_at) +
+                                  '"'
+                                : "") +
+                            ">" +
+                            (m.watched ? "✓ watched" : "unwatched") +
+                            "</span>" +
+                            (m.tmdb_id
+                                ? '<a class="ext-link" href="https://www.themoviedb.org/movie/' +
+                                  m.tmdb_id +
+                                  '" target="_blank" onclick="event.stopPropagation()" title="View on TMDB">↗</a>'
+                                : "") +
+                            (m.watched_at
+                                ? ' <span style="color:var(--text-muted);font-size:0.65rem;">(' +
+                                  formatDateLong(
+                                      m.watched_at.substring(0, 10),
+                                  ) +
+                                  ")</span>"
+                                : "") +
+                            "</div></div></div>"
+                        );
+                    })
+                    .join("");
+            }
+            async function fetchMovies() {
+                try {
+                    allMovies = await apiFetch(MOVIES_API);
+                    document.getElementById("movies-filter-bar").style.display =
+                        allMovies.length ? "flex" : "none";
+                    applyMovieFilters();
+                } catch (e) {
+                    document.getElementById("movies-list").innerHTML =
+                        '<p class="error">Failed: ' +
+                        escapeHtml(e.message) +
+                        "</p>";
+                }
+            }
+            async function toggleMovieWatched(movieId, watched, ev) {
+                ev.stopPropagation();
+                await apiFetch(
+                    MOVIES_API + "/" + movieId + "/watch?watched=" + watched,
+                    { method: "PATCH" },
+                );
+                var updated = await apiFetch(MOVIES_API + "/" + movieId);
+                var existing = allMovies.find(function (m) {
+                    return m.id === movieId;
+                });
+                if (existing) {
+                    existing.watched = updated.watched;
+                    existing.watched_at = updated.watched_at;
+                }
+                applyMovieFilters();
+            }
+
+            // ── SCAN ───────────────────────────────────────────────────────
             async function scanMedia() {
                 var el = document.getElementById("shows-list");
-                el.innerHTML = '<p class="loading">Scanning media root...</p>';
+                el.innerHTML = '<p class="loading">Scanning shows...</p>';
                 try {
                     var data = await apiFetch("/api/scan", { method: "POST" });
                     var count =
@@ -796,57 +1222,45 @@
                             ? data.shows_synced
                             : data._count || 0;
                     var html =
-                        "<p>Found <strong>" + count + "</strong> show(s).";
+                        "<p>📺 Shows: found <strong>" + count + "</strong>.";
                     if (data.created != null)
                         html += " Created: " + data.created + ".";
-                    if (data.updated != null)
-                        html += " Updated: " + data.updated + ".";
                     if (data.deleted != null && data.deleted > 0)
-                        html += " 🗑️ Deleted: " + data.deleted + ".";
+                        html += " 🗑️ " + data.deleted + ".";
                     html +=
                         ' <button onclick="fetchShows()">Refresh</button></p>';
-                    if (data.shows && data.shows.length > 0) {
-                        html += data.shows
-                            .map(function (s) {
-                                var icon =
-                                    s.status === "created"
-                                        ? "🆕"
-                                        : s.status === "updated"
-                                          ? "✅"
-                                          : "❌";
-                                var extra = s.error
-                                    ? " — " + escapeHtml(s.error)
-                                    : "";
-                                var seasons = s.seasons
-                                    ? " (" + s.seasons.length + " seasons)"
-                                    : "";
-                                return (
-                                    '<p style="font-size:0.85rem;margin:0.25rem 0 0.25rem 1rem">' +
-                                    icon +
-                                    " " +
-                                    escapeHtml(s.title) +
-                                    seasons +
-                                    (s.tvdb_id
-                                        ? " (tvdb:" + s.tvdb_id + ")"
-                                        : "") +
-                                    extra +
-                                    "</p>"
-                                );
-                            })
-                            .join("");
+
+                    // Also scan movies
+                    try {
+                        var md = await apiFetch("/api/movies/scan", {
+                            method: "POST",
+                        });
+                        var mc =
+                            md.movies_synced != null ? md.movies_synced : 0;
+                        html +=
+                            "<p>🎬 Movies: found <strong>" + mc + "</strong>.";
+                        if (md.created != null)
+                            html += " Created: " + md.created + ".";
+                        if (md.deleted != null && md.deleted > 0)
+                            html += " 🗑️ " + md.deleted + ".";
+                        html += "</p>";
+                    } catch (e) {
+                        html +=
+                            "<p>🎬 Movies: scan failed — " +
+                            escapeHtml(e.message) +
+                            "</p>";
                     }
+
                     el.innerHTML = html;
-                } catch (err) {
-                    var msg = err.message;
-                    if (err.body)
-                        msg += "\n" + JSON.stringify(err.body, null, 2);
+                } catch (e) {
                     el.innerHTML =
                         '<p class="error">Scan failed: ' +
-                        escapeHtml(msg) +
+                        escapeHtml(e.message) +
                         "</p>";
                 }
             }
 
+            // ── Init ───────────────────────────────────────────────────────
             fetchShows();
         </script>
     </body>

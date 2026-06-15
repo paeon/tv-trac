@@ -37,7 +37,6 @@ class EpisodeOut(BaseModel):
 
 class SeasonCreate(BaseModel):
     season_number: int
-    title: str | None = None
     episodes: list[EpisodeCreate] = []
 
 
@@ -47,7 +46,6 @@ class SeasonOut(BaseModel):
     id: int
     show_id: int
     season_number: int
-    title: str | None
     part_watched: str
     created_at: datetime
     episodes: list[EpisodeOut] = []
@@ -69,6 +67,7 @@ class ShowOut(BaseModel):
     id: int
     title: str
     tvdb_id: int | None
+    tvdb_slug: str | None
     overview: str | None
     poster_path: str | None
     first_aired: str | None
