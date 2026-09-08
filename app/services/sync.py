@@ -111,6 +111,7 @@ async def _sync_one_show(
 
     if tvdb_available:
         try:
+            extended = None
             # If .nfo provided a TVDB ID, use it directly
             if scanned_show.tvdb_id:
                 tvdb_id = scanned_show.tvdb_id
@@ -160,17 +161,19 @@ async def _sync_one_show(
                             "first_aired"
                         )
                         tvdb_slug = extended.get("slug")
-                    # Build season_number -> tvdb_season_id map from the extended response
-                    # Prefer Aired Order / official seasons over alternate orders
-                    for s in extended.get("seasons") or []:
-                        sn = s.get("number")
-                        sid = s.get("id")
-                        stype = (s.get("type") or {}).get("type", "")
-                        if sn is not None and sid is not None:
-                            sn = int(sn)
-                            # Only overwrite if this is official, or no entry yet
-                            if sn not in tvdb_seasons or stype == "official":
-                                tvdb_seasons[sn] = int(sid)
+
+            # Build season_number -> tvdb_season_id map from the extended response
+            # Prefer Aired Order / official seasons over alternate orders
+            if extended:
+                for s in extended.get("seasons") or []:
+                    sn = s.get("number")
+                    sid = s.get("id")
+                    stype = (s.get("type") or {}).get("type", "")
+                    if sn is not None and sid is not None:
+                        sn = int(sn)
+                        # Only overwrite if this is official, or no entry yet
+                        if sn not in tvdb_seasons or stype == "official":
+                            tvdb_seasons[sn] = int(sid)
         except Exception:
             logger.warning(
                 "TVDB lookup failed for %r, proceeding with local data only", title

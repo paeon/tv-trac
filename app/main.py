@@ -74,3 +74,12 @@ async def index(request: Request):
             "media_movies": settings.media_root_movies,
         },
     )
+
+
+@app.get("/show/{show_id}")
+async def show_detail(request: Request, show_id: int):
+    """Serve a dedicated show detail page."""
+    return templates.TemplateResponse(
+        "show_detail.html",
+        {"request": request, "show_id": show_id},
+    )

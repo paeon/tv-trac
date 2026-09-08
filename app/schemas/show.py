@@ -72,6 +72,7 @@ class ShowOut(BaseModel):
     poster_path: str | None
     first_aired: str | None
     notes: str | None
+    imdb_id: str | None
     part_watched: str
     deleted: bool
     created_at: datetime

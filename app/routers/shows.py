@@ -88,6 +88,23 @@ async def update_notes(
     return show
 
 
+@router.patch("/{show_id}/imdb", response_model=ShowOut)
+async def update_imdb(
+    show_id: int,
+    imdb_id: str = "",
+    db: AsyncSession = Depends(get_db),
+):
+    """Set or clear the IMDb ID on a show."""
+    result = await db.execute(select(Show).where(Show.id == show_id))
+    show = result.scalar_one_or_none()
+    if not show:
+        raise HTTPException(status_code=404, detail="Show not found")
+    show.imdb_id = imdb_id.strip() if imdb_id.strip() else None
+    await db.commit()
+    await db.refresh(show)
+    return show
+
+
 # ── Episodes ─────────────────────────────────────────────────────────────────
 
 
@@ -95,16 +112,30 @@ async def update_notes(
 async def toggle_watched(
     episode_id: int,
     watched: bool = True,
+    watched_at: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """Mark an episode as watched (or unwatched), updating part_watched flags."""
+    """Mark an episode as watched (or unwatched), updating part_watched flags.
+
+    Optionally accepts a `watched_at` date string (YYYY-MM-DD) to set a
+    custom watched timestamp instead of using the current time.
+    """
     result = await db.execute(select(Episode).where(Episode.id == episode_id))
     episode = result.scalar_one_or_none()
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")
 
     episode.watched = watched
-    episode.watched_at = datetime.now(timezone.utc) if watched else None
+    if watched:
+        if watched_at:
+            try:
+                episode.watched_at = datetime.fromisoformat(watched_at)
+            except ValueError:
+                episode.watched_at = datetime.now(timezone.utc)
+        elif episode.watched_at is None:
+            episode.watched_at = datetime.now(timezone.utc)
+    else:
+        episode.watched_at = None
     await db.flush()
 
     # Recalculate part_watched for the parent season

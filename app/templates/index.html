@@ -6,12 +6,12 @@
         <title>TV-Trac</title>
         <style>
             :root {
-                --bg: #1a1a2e;
-                --surface: #16213e;
+                --bg: #f4f6f9;
+                --surface: #ffffff;
                 --accent: #e94560;
-                --text: #eee;
-                --text-muted: #999;
-                --border: #333;
+                --text: #1a1a2e;
+                --text-muted: #6b7280;
+                --border: #e0e4e8;
             }
             * {
                 box-sizing: border-box;
@@ -189,6 +189,31 @@
                 font-size: 0.75rem;
                 margin-left: 0.5rem;
             }
+            .grid-view {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 1rem;
+            }
+            .grid-item {
+                cursor: pointer;
+                text-align: center;
+                transition: transform 0.1s;
+            }
+            .grid-item:hover {
+                transform: scale(1.03);
+            }
+            .grid-item .grid-poster {
+                width: 100%;
+                aspect-ratio: 2/3;
+                object-fit: cover;
+                border-radius: 8px;
+                background: var(--border);
+            }
+            .grid-item .grid-title {
+                font-size: 0.8rem;
+                margin-top: 0.4rem;
+                line-height: 1.3;
+            }
             .episode-list {
                 list-style: none;
                 margin-top: 0.5rem;
@@ -301,7 +326,7 @@
             .popover {
                 position: fixed;
                 z-index: 1000;
-                background: #1e2a4a;
+                background: var(--surface);
                 border: 1px solid var(--accent);
                 border-radius: 8px;
                 padding: 0.75rem 1rem;
@@ -309,7 +334,7 @@
                 font-size: 0.85rem;
                 color: var(--text);
                 line-height: 1.5;
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
             }
             footer {
                 text-align: center;
@@ -412,6 +437,13 @@
                         <option value="alpha">A-Z</option>
                         <option value="recent">Recently Added</option>
                     </select>
+                    <button
+                        class="filter-btn"
+                        onclick="toggleShowView()"
+                        id="show-view-toggle"
+                    >
+                        ▦ Grid
+                    </button>
                 </div>
                 <div class="card">
                     <h2>
@@ -701,7 +733,8 @@
             var showFilter = "all",
                 showSearch = "",
                 showCurrentPage = 1,
-                showPerPage = 10;
+                showPerPage = 10,
+                showViewMode = "list";
             function setShowFilter(f, btn) {
                 showFilter = f;
                 document
@@ -754,8 +787,12 @@
                 );
                 var start = (showCurrentPage - 1) * showPerPage;
                 var paged = filtered.slice(start, start + showPerPage);
-                document.getElementById("shows-list").innerHTML =
-                    renderShowList(paged);
+                var listEl = document.getElementById("shows-list");
+                listEl.className = showViewMode === "grid" ? "grid-view" : "";
+                listEl.innerHTML =
+                    showViewMode === "grid"
+                        ? renderShowGrid(paged)
+                        : renderShowList(paged);
                 renderPagination(
                     "shows",
                     filtered.length,
@@ -769,9 +806,9 @@
                         return (
                             '<div class="card" data-show-id="' +
                             s.id +
-                            '" style="cursor:pointer" onclick="loadShow(' +
+                            '" style="cursor:pointer" onclick="window.location.href=\'/show/' +
                             s.id +
-                            ',this)">' +
+                            "'\">" +
                             '<div class="card-title">' +
                             (s.poster_path
                                 ? '<img class="thumb" src="' +
@@ -818,6 +855,41 @@
                     })
                     .join("");
             }
+
+            function renderShowGrid(shows) {
+                return shows
+                    .map(function (s) {
+                        return (
+                            '<div class="grid-item" onclick="window.location.href=\'/show/' +
+                            s.id +
+                            "'\">" +
+                            (s.poster_path
+                                ? '<img class="grid-poster" src="' +
+                                  s.poster_path +
+                                  '" onerror="this.style.display=\'none\'">'
+                                : '<div class="grid-poster"></div>') +
+                            '<div class="grid-title">' +
+                            escapeHtml(s.title) +
+                            "</div>" +
+                            '<span class="badge ' +
+                            watchBadgeClass(s.part_watched) +
+                            '" style="font-size:0.65rem;">' +
+                            watchBadgeLabel(s.part_watched) +
+                            "</span>" +
+                            "</div>"
+                        );
+                    })
+                    .join("");
+            }
+
+            function toggleShowView() {
+                showViewMode = showViewMode === "list" ? "grid" : "list";
+                var btn = document.getElementById("show-view-toggle");
+                btn.textContent =
+                    showViewMode === "grid" ? "☰ List" : "▦ Grid";
+                applyShowFilters();
+            }
+
             function renderShowDetail(show, cardEl) {
                 return show.seasons
                     .map(function (season) {
