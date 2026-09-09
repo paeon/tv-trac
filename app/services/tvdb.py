@@ -7,7 +7,9 @@ API docs: https://thetvdb.github.io/v4-api/
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 from typing import Any
 
 import httpx
@@ -25,6 +27,16 @@ class TVDBClient:
     def __init__(self) -> None:
         self._token: str | None = None
         self._client: httpx.AsyncClient | None = None
+        self._last_request = 0.0
+        self._min_interval = 0.1  # ~10 req/sec, safely under TVDB's 40/s limit
+
+    async def _rate_limit(self) -> None:
+        """Throttle requests to stay under the API rate limit."""
+        now = time.monotonic()
+        elapsed = now - self._last_request
+        if elapsed < self._min_interval:
+            await asyncio.sleep(self._min_interval - elapsed)
+        self._last_request = time.monotonic()
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
@@ -36,6 +48,7 @@ class TVDBClient:
 
     async def authenticate(self) -> None:
         """Obtain a JWT bearer token from TheTVDB."""
+        await self._rate_limit()
         client = await self._get_client()
         body: dict[str, str] = {"apikey": settings.tvdb_api_key}
         if settings.tvdb_pin:
@@ -55,6 +68,7 @@ class TVDBClient:
 
     async def search_show(self, name: str) -> list[dict[str, Any]]:
         """Search for a show by name. Returns list of matching shows."""
+        await self._rate_limit()
         client = await self._get_client()
         resp = await client.get(
             "/search",
@@ -66,6 +80,7 @@ class TVDBClient:
 
     async def search_movie(self, name: str) -> list[dict[str, Any]]:
         """Search for a movie by name."""
+        await self._rate_limit()
         client = await self._get_client()
         resp = await client.get(
             "/search",
@@ -77,6 +92,7 @@ class TVDBClient:
 
     async def get_show(self, tvdb_id: int) -> dict[str, Any]:
         """Get full show record by TVDB ID."""
+        await self._rate_limit()
         client = await self._get_client()
         resp = await client.get(f"/series/{tvdb_id}", headers=await self._headers())
         resp.raise_for_status()
@@ -84,6 +100,7 @@ class TVDBClient:
 
     async def get_show_extended(self, tvdb_id: int) -> dict[str, Any]:
         """Get extended show record (includes seasons + episodes)."""
+        await self._rate_limit()
         client = await self._get_client()
         resp = await client.get(
             f"/series/{tvdb_id}/extended", headers=await self._headers()
@@ -93,6 +110,7 @@ class TVDBClient:
 
     async def get_movie_extended(self, tvdb_id: int) -> dict[str, Any]:
         """Get extended movie record."""
+        await self._rate_limit()
         client = await self._get_client()
         resp = await client.get(
             f"/movies/{tvdb_id}/extended", headers=await self._headers()
@@ -104,6 +122,7 @@ class TVDBClient:
 
     async def get_seasons(self, tvdb_id: int, page: int = 0) -> list[dict[str, Any]]:
         """Get all season type records for a series."""
+        await self._rate_limit()
         client = await self._get_client()
         resp = await client.get(
             f"/series/{tvdb_id}/episodes/default?page={page}",
@@ -119,6 +138,7 @@ class TVDBClient:
         self, series_id: int, season_type: str = "default", page: int = 0
     ) -> dict[str, Any]:
         """Get episodes for a series filtered by season type."""
+        await self._rate_limit()
         client = await self._get_client()
         resp = await client.get(
             f"/series/{series_id}/episodes/{season_type}/{page}",
@@ -129,6 +149,7 @@ class TVDBClient:
 
     async def get_season_extended(self, season_id: int) -> dict[str, Any]:
         """Get extended season record (includes episodes with full details)."""
+        await self._rate_limit()
         client = await self._get_client()
         resp = await client.get(
             f"/seasons/{season_id}/extended", headers=await self._headers()
@@ -138,6 +159,7 @@ class TVDBClient:
 
     async def get_episode_extended(self, episode_id: int) -> dict[str, Any]:
         """Get extended episode record with full details."""
+        await self._rate_limit()
         client = await self._get_client()
         resp = await client.get(
             f"/episodes/{episode_id}/extended", headers=await self._headers()

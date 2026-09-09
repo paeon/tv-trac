@@ -6,7 +6,9 @@ API docs: https://developer.themoviedb.org/reference
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 from typing import Any
 
 import httpx
@@ -22,6 +24,15 @@ IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
 class TMDBClient:
     def __init__(self) -> None:
         self._client: httpx.AsyncClient | None = None
+        self._last_request = 0.0
+        self._min_interval = 0.25  # ~4 req/sec, safely under TMDB's rate limit
+
+    async def _rate_limit(self) -> None:
+        now = time.monotonic()
+        elapsed = now - self._last_request
+        if elapsed < self._min_interval:
+            await asyncio.sleep(self._min_interval - elapsed)
+        self._last_request = time.monotonic()
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
@@ -41,6 +52,7 @@ class TMDBClient:
         self, query: str, year: str | None = None
     ) -> list[dict[str, Any]]:
         """Search TMDB for a movie."""
+        await self._rate_limit()
         client = await self._get_client()
         params: dict[str, Any] = {"query": query}
         if year:
@@ -51,6 +63,7 @@ class TMDBClient:
 
     async def get_movie(self, tmdb_id: int) -> dict[str, Any]:
         """Get full movie details."""
+        await self._rate_limit()
         client = await self._get_client()
         resp = await client.get(f"/movie/{tmdb_id}", params=self._params())
         resp.raise_for_status()

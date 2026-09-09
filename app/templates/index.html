@@ -368,6 +368,17 @@
                 <button onclick="scanMedia()" style="margin-left: 1rem">
                     🔍 Scan
                 </button>
+                <button
+                    onclick="checkMissing()"
+                    style="
+                        margin-left: 0.5rem;
+                        background: var(--surface);
+                        color: var(--text);
+                        border: 1px solid var(--border);
+                    "
+                >
+                    ⚠️ Check Missing
+                </button>
             </div>
         </header>
         <nav>
@@ -421,6 +432,18 @@
                     >
                         ○ Unwatched
                     </button>
+                    <button
+                        class="filter-btn"
+                        onclick="setShowFilter('hidden', this)"
+                    >
+                        👁 Hidden
+                    </button>
+                    <button
+                        class="filter-btn"
+                        onclick="setShowFilter('watchlist', this)"
+                    >
+                        ★ Watchlist
+                    </button>
                     <select
                         id="shows-sort"
                         onchange="applyShowFilters()"
@@ -435,14 +458,33 @@
                         "
                     >
                         <option value="alpha">A-Z</option>
+                        <option value="zalpha">Z-A</option>
                         <option value="recent">Recently Added</option>
+                    </select>
+                    <select
+                        id="shows-date-filter"
+                        onchange="applyShowFilters()"
+                        style="
+                            background: var(--surface);
+                            color: var(--text);
+                            border: 1px solid var(--border);
+                            border-radius: 6px;
+                            padding: 0.4rem 0.6rem;
+                            font-size: 0.8rem;
+                        "
+                    >
+                        <option value="all">All dates</option>
+                        <option value="1">Last day</option>
+                        <option value="3">Last 3 days</option>
+                        <option value="7">Last 7 days</option>
+                        <option value="30">Last 30 days</option>
                     </select>
                     <button
                         class="filter-btn"
                         onclick="toggleShowView()"
                         id="show-view-toggle"
                     >
-                        ▦ Grid
+                        ☰ List
                     </button>
                 </div>
                 <div class="card">
@@ -734,7 +776,37 @@
                 showSearch = "",
                 showCurrentPage = 1,
                 showPerPage = 10,
-                showViewMode = "list";
+                showViewMode = "grid";
+
+            function saveShowState() {
+                try {
+                    localStorage.setItem(
+                        "tvtrac_show_state",
+                        JSON.stringify({
+                            filter: showFilter,
+                            search: showSearch,
+                            page: showCurrentPage,
+                            perPage: showPerPage,
+                            view: showViewMode,
+                        }),
+                    );
+                } catch (e) {}
+            }
+
+            function loadShowState() {
+                try {
+                    var s = JSON.parse(
+                        localStorage.getItem("tvtrac_show_state") || "null",
+                    );
+                    if (!s) return;
+                    showFilter = s.filter || "all";
+                    showSearch = s.search || "";
+                    showCurrentPage = s.page || 1;
+                    showPerPage = s.perPage || 10;
+                    showViewMode = s.view || "grid";
+                } catch (e) {}
+            }
+
             function setShowFilter(f, btn) {
                 showFilter = f;
                 document
@@ -773,13 +845,80 @@
                     filtered = filtered.filter(function (s) {
                         return s.part_watched === "unwatched";
                     });
+                else if (showFilter === "hidden")
+                    filtered = filtered.filter(function (s) {
+                        return s.hidden === true;
+                    });
+                else if (showFilter === "watchlist")
+                    filtered = filtered.filter(function (s) {
+                        return s.watchlist === true;
+                    });
+                else
+                    // Default: exclude hidden
+                    filtered = filtered.filter(function (s) {
+                        return s.hidden !== true;
+                    });
+                // Date range filter
+                var dateFilter =
+                    document.getElementById("shows-date-filter").value;
+                if (dateFilter !== "all") {
+                    var days = parseInt(dateFilter);
+                    var cutoff = new Date();
+                    cutoff.setDate(cutoff.getDate() - days);
+                    filtered = filtered.filter(function (s) {
+                        var d = new Date(s.updated_at);
+                        return d >= cutoff;
+                    });
+                }
+                // Compute counts: total / visible / hidden
+                var totalShows = allShows.length;
+                var visibleShows = allShows.filter(function (s) {
+                    return s.hidden !== true;
+                }).length;
+                var hiddenShows = totalShows - visibleShows;
+
+                // Search-matched subset (before status/hidden filtering)
+                var searchMatches = allShows;
+                if (showSearch) {
+                    searchMatches = searchMatches.filter(function (s) {
+                        return s.title.toLowerCase().indexOf(showSearch) !== -1;
+                    });
+                }
+                var searchVisible = searchMatches.filter(function (s) {
+                    return s.hidden !== true;
+                }).length;
+                var searchHidden = searchMatches.length - searchVisible;
+
                 var sort = document.getElementById("shows-sort").value;
                 if (sort === "recent")
                     filtered = filtered.slice().sort(function (a, b) {
                         return new Date(b.updated_at) - new Date(a.updated_at);
                     });
-                document.getElementById("show-count").textContent =
-                    "(" + filtered.length + ")";
+                else if (sort === "zalpha")
+                    filtered = filtered.slice().sort(function (a, b) {
+                        return b.title.localeCompare(a.title);
+                    });
+                if (showSearch) {
+                    document.getElementById("show-count").innerHTML =
+                        "Found: <strong>" +
+                        searchMatches.length +
+                        "</strong> · " +
+                        "Visible: " +
+                        searchVisible +
+                        " · " +
+                        "Hidden: " +
+                        searchHidden;
+                } else {
+                    document.getElementById("show-count").innerHTML =
+                        "Total: <strong>" +
+                        totalShows +
+                        "</strong> · " +
+                        "Visible: " +
+                        visibleShows +
+                        " · " +
+                        "Hidden: " +
+                        hiddenShows;
+                }
                 // Paginate
                 showCurrentPage = Math.min(
                     showCurrentPage,
@@ -799,6 +938,7 @@
                     showCurrentPage,
                     showPerPage,
                 );
+                saveShowState();
             }
             function renderShowList(shows) {
                 return shows
@@ -824,6 +964,9 @@
                                 ? " (" + s.first_aired.substring(0, 4) + ")"
                                 : "") +
                             "</strong>" +
+                            (s.watchlist
+                                ? ' <span style="background:#f1c40f;color:#000;font-size:0.6rem;padding:0 0.3rem;border-radius:3px;font-weight:bold;vertical-align:middle;" title="On Watchlist">WL</span>'
+                                : "") +
                             (s.first_aired
                                 ? ' <span style="color:var(--text-muted);font-size:0.8rem;">' +
                                   formatDateLong(s.first_aired) +
@@ -849,6 +992,13 @@
                                   s.tvdb_slug +
                                   '" target="_blank" onclick="event.stopPropagation()" title="View on TheTVDB">↗</a>'
                                 : "") +
+                            (s.missing_count > 0
+                                ? '<span style="color:var(--accent);font-size:0.7rem;margin-left:0.5rem;" title="' +
+                                  escapeHtml(s.missing_details || "") +
+                                  '">⚠ ' +
+                                  s.missing_count +
+                                  " missing</span>"
+                                : "") +
                             "</div></div>" +
                             '<div class="show-detail" style="display:none;margin-top:0.75rem"></div></div>'
                         );
@@ -870,12 +1020,22 @@
                                 : '<div class="grid-poster"></div>') +
                             '<div class="grid-title">' +
                             escapeHtml(s.title) +
+                            (s.watchlist
+                                ? ' <span style="background:#f1c40f;color:#000;font-size:0.6rem;padding:0 0.3rem;border-radius:3px;font-weight:bold;vertical-align:middle;" title="On Watchlist">WL</span>'
+                                : "") +
                             "</div>" +
                             '<span class="badge ' +
                             watchBadgeClass(s.part_watched) +
                             '" style="font-size:0.65rem;">' +
                             watchBadgeLabel(s.part_watched) +
                             "</span>" +
+                            (s.missing_count > 0
+                                ? '<div style="color:var(--accent);font-size:0.65rem;margin-top:0.2rem;" title="' +
+                                  escapeHtml(s.missing_details || "") +
+                                  '">⚠ ' +
+                                  s.missing_count +
+                                  " missing</div>"
+                                : "") +
                             "</div>"
                         );
                     })
@@ -1043,7 +1203,10 @@
 
             async function fetchShows() {
                 try {
-                    allShows = await apiFetch(SHOWS_API);
+                    // Load all shows (including hidden) so we can filter client-side
+                    allShows = await apiFetch(
+                        SHOWS_API + "?include_hidden=true",
+                    );
                     document.getElementById("shows-filter-bar").style.display =
                         allShows.length ? "flex" : "none";
                     applyShowFilters();
@@ -1088,10 +1251,12 @@
             }
             async function refreshShowBadges() {
                 try {
-                    var shows = await apiFetch(SHOWS_API);
+                    var shows = await apiFetch(
+                        SHOWS_API + "?include_hidden=true",
+                    );
                     allShows = shows;
-                    document.getElementById("show-count").textContent =
-                        "(" + shows.length + ")";
+                    // Re-apply filters which will update the count display
+                    applyShowFilters();
                     document
                         .querySelectorAll(".card[data-show-id]")
                         .forEach(function (card) {
@@ -1332,7 +1497,95 @@
                 }
             }
 
+            // ── CHECK MISSING ────────────────────────────────────────────────
+            async function checkMissing() {
+                var el = document.getElementById("shows-list");
+                el.innerHTML =
+                    '<p class="loading">Checking TheTVDB for missing episodes...</p>';
+                try {
+                    var data = await apiFetch("/api/scan/check-missing");
+                    if (data.status === "offline") {
+                        el.innerHTML =
+                            '<p class="error">' +
+                            escapeHtml(data.message) +
+                            "</p>";
+                        return;
+                    }
+                    var html =
+                        '<button onclick="fetchShows()">Refresh list</button><br><br>';
+                    var hasMissing = false;
+                    data.shows.forEach(function (s) {
+                        if (s.status === "missing") {
+                            hasMissing = true;
+                            html +=
+                                '<div class="card" style="padding:0.75rem;margin-bottom:0.5rem;"><strong>' +
+                                escapeHtml(s.title) +
+                                '</strong> — <span style="color:var(--accent);">' +
+                                escapeHtml(s.message) +
+                                "</span></div>";
+                        }
+                    });
+                    var okCount = data.shows.filter(function (s) {
+                        return s.status === "ok";
+                    }).length;
+                    var missingCount = data.shows.filter(function (s) {
+                        return s.status === "missing";
+                    }).length;
+                    html =
+                        '<p style="margin-bottom:0.75rem;"><strong>' +
+                        okCount +
+                        '</strong> shows up to date, <strong style="color:var(--accent);">' +
+                        missingCount +
+                        "</strong> with missing episodes.</p>" +
+                        html;
+                    if (!hasMissing) {
+                        html +=
+                            '<p style="color:var(--text-muted);">All shows are up to date ✓</p>';
+                    }
+                    el.innerHTML = html;
+                } catch (e) {
+                    el.innerHTML =
+                        '<p class="error">Check failed: ' +
+                        escapeHtml(e.message) +
+                        "</p>";
+                }
+            }
+
             // ── Init ───────────────────────────────────────────────────────
+            function restoreShowUI() {
+                // Restore search input
+                if (showSearch) {
+                    document.getElementById("shows-search").value = showSearch;
+                }
+                // Restore active filter button
+                document
+                    .querySelectorAll("#page-shows .filter-btn")
+                    .forEach(function (b) {
+                        b.classList.remove("active");
+                    });
+                // Set the active filter button based on showFilter
+                var filterLabels = {
+                    all: "All",
+                    watched: "✓ Watched",
+                    partial: "◐ Partial",
+                    unwatched: "○ Unwatched",
+                    hidden: "👁 Hidden",
+                    watchlist: "★ Watchlist",
+                };
+                document
+                    .querySelectorAll("#page-shows .filter-btn")
+                    .forEach(function (b) {
+                        if (b.textContent.trim() === filterLabels[showFilter]) {
+                            b.classList.add("active");
+                        }
+                    });
+                // Restore view toggle label
+                document.getElementById("show-view-toggle").textContent =
+                    showViewMode === "grid" ? "☰ List" : "▦ Grid";
+            }
+
+            loadShowState();
+            restoreShowUI();
             fetchShows();
         </script>
     </body>

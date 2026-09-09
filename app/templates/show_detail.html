@@ -261,6 +261,11 @@
                             (show.imdb_id ? '<a class="ext-link" href="https://www.imdb.com/title/'+show.imdb_id+'/" target="_blank">IMDb ↗</a>' : '<span class="ext-link" onclick="editImdb(event)" style="cursor:pointer;">Add IMDb ID</span>') +
                         '</div>' +
                         (show.overview ? '<p class="overview">'+escapeHtml(show.overview)+'</p>' : '') +
+                        (show.missing_count > 0 ? '<div style="margin-top:0.5rem;padding:0.5rem 0.75rem;background:rgba(233,69,96,0.1);border:1px solid var(--accent);border-radius:6px;font-size:0.85rem;">⚠ <strong>Missing episodes:</strong> '+escapeHtml(show.missing_details||'')+'</div>' : '') +
+                        '<div style="margin-top:0.75rem;display:flex;gap:0.5rem;">' +
+                            '<button onclick="toggleWatchlist(' + show.id + ',' + (!show.watchlist) + ')" style="'+(show.watchlist?'background:var(--accent);color:#fff;':'background:var(--border);color:var(--text);')+'border:none;padding:0.3rem 0.9rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">'+(show.watchlist?'★ On Watchlist':'☆ Add to Watchlist')+'</button>' +
+                            '<button onclick="toggleHidden(' + show.id + ',' + (!show.hidden) + ')" style="background:var(--border);color:var(--text);border:none;padding:0.3rem 0.9rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">'+(show.hidden?'Unhide from listings':'Hide from listings')+'</button>' +
+                        '</div>' +
                     '</div>' +
                     '</div>' +
                     '</div>' +
@@ -329,6 +334,16 @@
                 var input = document.getElementById('imdb-input');
                 var id = input ? input.value.trim() : '';
                 await fetch('/api/shows/'+SHOW_ID+'/imdb?imdb_id='+encodeURIComponent(id), {method:'PATCH'});
+                loadDetail();
+            }
+
+            async function toggleHidden(showId, hidden) {
+                await fetch('/api/shows/'+showId+'/hidden?hidden='+hidden, {method:'PATCH'});
+                loadDetail();
+            }
+
+            async function toggleWatchlist(showId, watchlist) {
+                await fetch('/api/shows/'+showId+'/watchlist?watchlist='+watchlist, {method:'PATCH'});
                 loadDetail();
             }
 

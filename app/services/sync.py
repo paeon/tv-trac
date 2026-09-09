@@ -16,6 +16,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.show import Episode, Season, Show
+from app.services.check import check_missing
 from app.services.scanner import ScannedShow, scan_media_root
 from app.services.tvdb import tvdb
 
@@ -86,6 +87,13 @@ async def sync_shows(db: AsyncSession) -> dict[str, Any]:
         await db.commit()
         logger.info("Soft-deleted %d show(s) no longer on disk", deleted_count)
 
+    # ── Check for missing episodes and store results ───────────────────
+    missing_report = None
+    try:
+        missing_report = await check_missing(db, store=True)
+    except Exception:
+        logger.warning("Failed to check for missing episodes after scan")
+
     return {
         "status": "ok",
         "shows_synced": len(results),
@@ -93,6 +101,7 @@ async def sync_shows(db: AsyncSession) -> dict[str, Any]:
         "updated": updated,
         "deleted": deleted_count,
         "shows": results,
+        "missing": missing_report.get("shows") if missing_report else None,
     }
 
 

@@ -30,11 +30,14 @@ router = APIRouter(prefix="/api/shows", tags=["shows"])
 @router.get("", response_model=List[ShowOut])
 async def list_shows(
     include_deleted: bool = False,
+    include_hidden: bool = False,
     db: AsyncSession = Depends(get_db),
 ):
     query = select(Show).order_by(Show.title)
     if not include_deleted:
         query = query.where(Show.deleted == False)  # noqa: E712
+    if not include_hidden:
+        query = query.where(Show.hidden == False)  # noqa: E712
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -100,6 +103,40 @@ async def update_imdb(
     if not show:
         raise HTTPException(status_code=404, detail="Show not found")
     show.imdb_id = imdb_id.strip() if imdb_id.strip() else None
+    await db.commit()
+    await db.refresh(show)
+    return show
+
+
+@router.patch("/{show_id}/hidden", response_model=ShowOut)
+async def toggle_hidden(
+    show_id: int,
+    hidden: bool = True,
+    db: AsyncSession = Depends(get_db),
+):
+    """Hide or unhide a show from listings."""
+    result = await db.execute(select(Show).where(Show.id == show_id))
+    show = result.scalar_one_or_none()
+    if not show:
+        raise HTTPException(status_code=404, detail="Show not found")
+    show.hidden = hidden
+    await db.commit()
+    await db.refresh(show)
+    return show
+
+
+@router.patch("/{show_id}/watchlist", response_model=ShowOut)
+async def toggle_watchlist(
+    show_id: int,
+    watchlist: bool = True,
+    db: AsyncSession = Depends(get_db),
+):
+    """Add or remove a show from the watchlist."""
+    result = await db.execute(select(Show).where(Show.id == show_id))
+    show = result.scalar_one_or_none()
+    if not show:
+        raise HTTPException(status_code=404, detail="Show not found")
+    show.watchlist = watchlist
     await db.commit()
     await db.refresh(show)
     return show

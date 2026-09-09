@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.services.check import check_missing
 from app.services.scanner import scan_media_root
 from app.services.sync import sync_shows
 
@@ -58,3 +59,15 @@ async def trigger_scan(
 
     # Full sync: scan → TVDB → persist
     return await sync_shows(db)
+
+
+@router.get("/check-missing")
+async def check_for_missing(
+    store: bool = False,
+    db: AsyncSession = Depends(get_db),
+):
+    """Compare local library against TheTVDB and report missing seasons/episodes.
+
+    If `store=true`, persist the results to the show records.
+    """
+    return await check_missing(db, store=store)

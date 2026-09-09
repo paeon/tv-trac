@@ -73,6 +73,10 @@ class ShowOut(BaseModel):
     first_aired: str | None
     notes: str | None
     imdb_id: str | None
+    missing_count: int
+    missing_details: str | None
+    hidden: bool
+    watchlist: bool
     part_watched: str
     deleted: bool
     created_at: datetime
