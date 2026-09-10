@@ -32,6 +32,7 @@ class Show(Base):
     missing_details: Mapped[str | None] = mapped_column(Text, nullable=True)
     hidden: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     watchlist: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    rating: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     part_watched: Mapped[str] = mapped_column(
         String(10), default="unwatched", nullable=False
     )

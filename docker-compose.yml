@@ -12,6 +12,6 @@ services:
       - MEDIA_ROOT_MOVIES=/media/movies
     volumes:
       - ./data:/app/data
-      - ${MEDIA_HOST_PATH:-/media/tv}:/media/tv:ro
-      - ${MEDIA_HOST_MOVIES:-/media/movies}:/media/movies:ro
+      - ${MEDIA_HOST_TV_PATH:-/media/tv}:/media/tv:ro
+      - ${MEDIA_HOST_MOVIES_PATH:-/media/movies}:/media/movies:ro
     restart: unless-stopped

@@ -142,6 +142,23 @@ async def toggle_watchlist(
     return show
 
 
+@router.patch("/{show_id}/rating", response_model=ShowOut)
+async def set_rating(
+    show_id: int,
+    rating: int = 0,
+    db: AsyncSession = Depends(get_db),
+):
+    """Set a 0-5 star rating on a show (0 = unrated)."""
+    result = await db.execute(select(Show).where(Show.id == show_id))
+    show = result.scalar_one_or_none()
+    if not show:
+        raise HTTPException(status_code=404, detail="Show not found")
+    show.rating = max(0, min(5, rating))
+    await db.commit()
+    await db.refresh(show)
+    return show
+
+
 # ── Episodes ─────────────────────────────────────────────────────────────────
 
 

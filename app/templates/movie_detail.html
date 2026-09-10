@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>TV-Trac — Movie</title>
+        <link
+            rel="icon"
+            type="image/svg+xml"
+            href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e94560' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='7' width='20' height='14' rx='2'/%3E%3Cpolyline points='17 2 12 7 7 2'/%3E%3C/svg%3E"
+        />
+        <style>
+            :root {
+                --bg: #f4f6f9;
+                --surface: #ffffff;
+                --accent: #e94560;
+                --text: #1a1a2e;
+                --text-muted: #6b7280;
+                --border: #e0e4e8;
+            }
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                line-height: 1.6;
+            }
+            header {
+                background: var(--surface);
+                padding: 1rem 2rem;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            header h1 {
+                font-size: 1.3rem;
+                color: var(--accent);
+            }
+            header a {
+                color: var(--text-muted);
+                text-decoration: none;
+                font-size: 0.85rem;
+            }
+            header a:hover {
+                color: var(--accent);
+            }
+            main {
+                max-width: 900px;
+                margin: 2rem auto;
+                padding: 0 1rem;
+            }
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 1.5rem;
+                margin-bottom: 1rem;
+            }
+            .badge {
+                display: inline-block;
+                padding: 0.15rem 0.6rem;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 600;
+            }
+            .badge-watched {
+                background: #2ecc71;
+                color: #fff;
+            }
+            .badge-unwatched {
+                background: var(--border);
+                color: var(--text-muted);
+            }
+            .poster {
+                width: 180px;
+                height: 270px;
+                object-fit: cover;
+                border-radius: 8px;
+                float: left;
+                margin-right: 1.5rem;
+                margin-bottom: 1rem;
+                background: var(--border);
+            }
+            .show-header {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: flex-start;
+            }
+            .show-info {
+                flex: 1;
+                min-width: 250px;
+            }
+            .show-info h2 {
+                font-size: 1.6rem;
+                margin-bottom: 0.3rem;
+            }
+            .show-info .year {
+                color: var(--text-muted);
+                font-size: 1rem;
+            }
+            .show-info .overview {
+                margin-top: 0.75rem;
+                font-size: 0.95rem;
+            }
+            .meta {
+                color: var(--text-muted);
+                font-size: 0.8rem;
+                margin-top: 0.5rem;
+            }
+            .ext-link {
+                color: var(--accent);
+                text-decoration: none;
+                font-size: 0.8rem;
+            }
+            .loading {
+                color: var(--text-muted);
+                font-style: italic;
+            }
+            .popover {
+                position: fixed;
+                z-index: 1000;
+                background: var(--surface);
+                border: 1px solid var(--accent);
+                border-radius: 8px;
+                padding: 0.75rem 1rem;
+                font-size: 0.85rem;
+                color: var(--text);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            }
+            .clearfix::after {
+                content: "";
+                display: table;
+                clear: both;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem">
+                    <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#e94560"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <rect x="2" y="7" width="20" height="14" rx="2" />
+                        <polyline points="17 2 12 7 7 2" />
+                    </svg>
+                    <h1>TV-Trac</h1>
+                </div>
+                <p
+                    style="
+                        color: var(--text-muted);
+                        font-size: 0.7rem;
+                        margin-top: 0.1rem;
+                    "
+                >
+                    Track your TV shows &amp; movies
+                </p>
+            </div>
+            <a href="/?tab=movies">← Back to movies</a>
+        </header>
+        <main>
+            <div id="detail" class="loading">Loading...</div>
+        </main>
+
+        <script>
+            var MOVIE_ID = {{ movie_id }};
+
+            function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+            var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            function formatDateLong(d) { if (!d) return ''; var p = d.split('-'); if (p.length !== 3) return d; return MONTHS[parseInt(p[1])-1] + ' ' + parseInt(p[2]) + ', ' + parseInt(p[0]); }
+
+            async function loadDetail() {
+                var el = document.getElementById('detail');
+                try {
+                    var resp = await fetch('/api/movies/' + MOVIE_ID);
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    var m = await resp.json();
+                    document.title = m.title + ' — TV-Trac';
+                    el.innerHTML = render(m);
+                } catch (e) {
+                    el.innerHTML = '<p style="color:var(--accent);">Failed to load: ' + escapeHtml(e.message) + '</p>';
+                }
+            }
+
+            function render(m) {
+                return '<div class="card clearfix">' +
+                    '<div class="show-header">' +
+                    (m.poster_path ? '<img class="poster" src="' + m.poster_path + '" onerror="this.style.display=\'none\'">' : '') +
+                    '<div class="show-info">' +
+                        '<h2>' + escapeHtml(m.title) + ' <span class="year">(' + (m.first_aired ? m.first_aired.substring(0,4) : '') + ')</span></h2>' +
+                        '<span class="badge ' + (m.watched ? 'badge-watched' : 'badge-unwatched') + '">' + (m.watched ? '✓ watched' : 'unwatched') + '</span>' +
+                        (m.watched_at ? ' <span style="color:var(--accent);font-size:0.75rem;cursor:pointer;text-decoration:underline;" onclick="openCalendar(event)" title="Change watched date">(' + formatDateLong(m.watched_at.substring(0,10)) + ')</span>' : '') +
+                        (m.first_aired ? '<div class="meta">Released: ' + formatDateLong(m.first_aired) + '</div>' : '') +
+                        (m.runtime ? '<div class="meta">Runtime: ' + m.runtime + 'm</div>' : '') +
+                        '<div class="meta" style="display:flex;gap:0.5rem;flex-wrap:wrap;">' +
+                            (m.tmdb_id ? '<a class="ext-link" href="https://www.themoviedb.org/movie/' + m.tmdb_id + '" target="_blank">TMDB ↗</a>' : '') +
+                            (m.imdb_id ? '<a class="ext-link" href="https://www.imdb.com/title/' + m.imdb_id + '/" target="_blank">IMDb ↗</a>' : '<span class="ext-link" onclick="editImdb(event)" style="cursor:pointer;">Add IMDb ID</span>') +
+                        '</div>' +
+                        (m.overview ? '<p class="overview">' + escapeHtml(m.overview) + '</p>' : '') +
+                        '<div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">' +
+                            '<button onclick="toggleWatched(' + m.id + ',' + (!m.watched) + ')" style="background:var(--border);color:var(--text);border:none;padding:0.3rem 0.9rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">' + (m.watched ? 'Mark unwatched' : 'Mark watched') + '</button>' +
+                            '<button onclick="toggleWatchlist(' + m.id + ',' + (!m.watchlist) + ')" style="' + (m.watchlist ? 'background:var(--accent);color:#fff;' : 'background:var(--border);color:var(--text);') + 'border:none;padding:0.3rem 0.9rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">' + (m.watchlist ? '★ On Watchlist' : '☆ Add to Watchlist') + '</button>' +
+                            '<button onclick="toggleHidden(' + m.id + ',' + (!m.hidden) + ')" style="background:var(--border);color:var(--text);border:none;padding:0.3rem 0.9rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">' + (m.hidden ? 'Unhide from listings' : 'Hide from listings') + '</button>' +
+                        '</div>' +
+                        '<div style="margin-top:0.75rem;">' +
+                            '<span style="font-size:0.8rem;color:var(--text-muted);margin-right:0.5rem;">Rating:</span>' +
+                            renderStars(m.id, m.rating) +
+                        '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="card">' +
+                        '<div style="margin-bottom:0.5rem;"><strong>Notes</strong>' +
+                            '<button onclick="editNotes(event)" style="background:none;border:1px solid var(--border);color:var(--text);padding:0.15rem 0.6rem;border-radius:4px;font-size:0.7rem;margin-left:0.5rem;cursor:pointer;">' + (m.notes ? 'Edit' : 'Add') + '</button>' +
+                        '</div>' +
+                        '<div id="notes-display">' + (m.notes ? escapeHtml(m.notes) : '<span style="color:var(--text-muted);font-size:0.8rem;">No notes yet</span>') + '</div>' +
+                    '</div>';
+            }
+
+            function renderStars(id, rating) {
+                var html = '';
+                for (var i = 1; i <= 5; i++) {
+                    var filled = i <= rating;
+                    html += '<span onclick="setRating(' + id + ',' + i + ')" style="cursor:pointer;font-size:1.3rem;color:' + (filled ? '#f1c40f' : '#b0b8c4') + ';">' + (filled ? '★' : '☆') + '</span>';
+                }
+                if (rating > 0) {
+                    html += ' <span onclick="setRating(' + id + ',0)" style="cursor:pointer;font-size:0.7rem;color:var(--text-muted);margin-left:0.5rem;">clear</span>';
+                }
+                return html;
+            }
+
+            var calYear = null, calMonth = null, calSelectedDay = null;
+            var CAL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+            function openCalendar(ev) {
+                ev.stopPropagation();
+                var now = new Date();
+                calYear = now.getFullYear();
+                calMonth = now.getMonth();
+                calSelectedDay = null;
+                var pop = document.createElement('div');
+                pop.className = 'popover';
+                pop.id = 'cal-popover';
+                document.body.appendChild(pop);
+                renderCalendar();
+                // Position after render so we can measure the popup height
+                var rect = ev.target.getBoundingClientRect();
+                var popHeight = pop.offsetHeight || 300;
+                var top = rect.bottom + 4;
+                if (top + popHeight > window.innerHeight) {
+                    top = rect.top - popHeight - 4;
+                }
+                if (top < 4) top = 4;
+                var left = Math.max(8, rect.left - 200);
+                pop.style.top = top + 'px';
+                pop.style.left = left + 'px';
+            }
+
+            function renderCalendar() {
+                var pop = document.getElementById('cal-popover');
+                if (!pop) return;
+                var first = new Date(calYear, calMonth, 1);
+                var startDay = first.getDay();
+                var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+                var monthOpts = '', yearOpts = '';
+                for (var m = 0; m < 12; m++) monthOpts += '<option value="' + m + '"' + (m === calMonth ? ' selected' : '') + '>' + CAL_MONTHS[m] + '</option>';
+                for (var y = calYear - 20; y <= calYear + 1; y++) yearOpts += '<option value="' + y + '"' + (y === calYear ? ' selected' : '') + '>' + y + '</option>';
+                var html = '<div style="display:flex;gap:0.3rem;margin-bottom:0.4rem;">' +
+                    '<select onchange="calMonth=parseInt(this.value);renderCalendar()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.2rem;font-size:0.75rem;flex:2;">' + monthOpts + '</select>' +
+                    '<select onchange="calYear=parseInt(this.value);renderCalendar()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.2rem;font-size:0.75rem;flex:1;">' + yearOpts + '</select>' +
+                    '</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;">';
+                var days = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+                for (var i = 0; i < 7; i++) html += '<span style="font-size:0.65rem;color:var(--text-muted);">' + days[i] + '</span>';
+                for (var j = 0; j < startDay; j++) html += '<span></span>';
+                for (var d = 1; d <= daysInMonth; d++) {
+                    var isSel = (d === calSelectedDay);
+                    html += '<button onclick="calSelectedDay=' + d + ';renderCalendar()" style="' + (isSel ? 'background:var(--accent);color:#fff;' : 'background:none;color:var(--text);') + 'border:none;padding:0.2rem;font-size:0.8rem;cursor:pointer;border-radius:4px;">' + d + '</button>';
+                }
+                html += '</div><div style="margin-top:0.5rem;">' +
+                    '<button onclick="saveCalendar()" style="background:var(--accent);color:#fff;font-size:0.75rem;">Save</button> ' +
+                    '<button onclick="unmarkMovie()" style="background:var(--border);color:var(--text);font-size:0.75rem;">Unmark</button> ' +
+                    '<button onclick="dismissPopover()" style="background:var(--border);color:var(--text);font-size:0.75rem;">Cancel</button></div>';
+                pop.innerHTML = html;
+            }
+
+            function dismissPopover() { var p = document.getElementById('cal-popover'); if (p) p.remove(); }
+
+            async function saveCalendar() {
+                if (!calSelectedDay) { return; }
+                var d = calYear + '-' + String(calMonth + 1).padStart(2, '0') + '-' + String(calSelectedDay).padStart(2, '0');
+                await fetch('/api/movies/' + MOVIE_ID + '/watch?watched=true&watched_at=' + d, {method:'PATCH'});
+                dismissPopover();
+                loadDetail();
+            }
+
+            async function unmarkMovie() {
+                await fetch('/api/movies/' + MOVIE_ID + '/watch?watched=false', {method:'PATCH'});
+                dismissPopover();
+                loadDetail();
+            }
+
+            async function toggleWatched(id, watched) { await fetch('/api/movies/' + id + '/watch?watched=' + watched, {method:'PATCH'}); loadDetail(); }
+            async function toggleWatchlist(id, w) { await fetch('/api/movies/' + id + '/watchlist?watchlist=' + w, {method:'PATCH'}); loadDetail(); }
+            async function toggleHidden(id, h) { await fetch('/api/movies/' + id + '/hidden?hidden=' + h, {method:'PATCH'}); loadDetail(); }
+            async function setRating(id, r) { await fetch('/api/movies/' + id + '/rating?rating=' + r, {method:'PATCH'}); loadDetail(); }
+
+            function editNotes(ev) {
+                ev.stopPropagation();
+                var display = document.getElementById('notes-display');
+                var current = display.textContent === 'No notes yet' ? '' : display.textContent;
+                display.innerHTML = '<textarea id="notes-ta" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0.5rem;font-size:0.85rem;resize:vertical;min-height:70px;font-family:inherit;">' + escapeHtml(current) + '</textarea>' +
+                    '<div style="margin-top:0.5rem;"><button onclick="saveNotes()" style="background:var(--accent);color:#fff;border:none;padding:0.3rem 0.9rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">Save</button> ' +
+                    '<button onclick="loadDetail()" style="background:var(--border);color:var(--text);border:none;padding:0.3rem 0.9rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">Cancel</button></div>';
+            }
+
+            async function saveNotes() {
+                var ta = document.getElementById('notes-ta');
+                await fetch('/api/movies/' + MOVIE_ID + '/notes?notes=' + encodeURIComponent(ta ? ta.value : ''), {method:'PATCH'});
+                loadDetail();
+            }
+
+            function editImdb(ev) {
+                ev.stopPropagation();
+                var link = ev.target;
+                link.innerHTML = '<input type="text" id="imdb-input" placeholder="tt9059820" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.2rem;font-size:0.75rem;width:120px;">';
+                var input = document.getElementById('imdb-input');
+                input.focus();
+                input.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveImdb(); });
+            }
+
+            async function saveImdb() {
+                var input = document.getElementById('imdb-input');
+                await fetch('/api/movies/' + MOVIE_ID + '/imdb?imdb_id=' + encodeURIComponent(input ? input.value.trim() : ''), {method:'PATCH'});
+                loadDetail();
+            }
+
+            loadDetail();
+        </script>
+    </body>
+</html>

@@ -25,6 +25,10 @@ class MovieOut(BaseModel):
     first_aired: str | None
     runtime: int | None
     notes: str | None
+    imdb_id: str | None
+    hidden: bool
+    watchlist: bool
+    rating: int
     watched: bool
     watched_at: datetime | None
     file_path: str | None

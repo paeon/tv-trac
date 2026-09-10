@@ -83,3 +83,12 @@ async def show_detail(request: Request, show_id: int):
         "show_detail.html",
         {"request": request, "show_id": show_id},
     )
+
+
+@app.get("/movie/{movie_id}")
+async def movie_detail(request: Request, movie_id: int):
+    """Serve a dedicated movie detail page."""
+    return templates.TemplateResponse(
+        "movie_detail.html",
+        {"request": request, "movie_id": movie_id},
+    )

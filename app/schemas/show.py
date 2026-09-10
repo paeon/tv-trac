@@ -77,6 +77,7 @@ class ShowOut(BaseModel):
     missing_details: str | None
     hidden: bool
     watchlist: bool
+    rating: int
     part_watched: str
     deleted: bool
     created_at: datetime

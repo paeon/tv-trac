@@ -4,6 +4,11 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>TV-Trac</title>
+        <link
+            rel="icon"
+            type="image/svg+xml"
+            href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e94560' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='7' width='20' height='14' rx='2'/%3E%3Cpolyline points='17 2 12 7 7 2'/%3E%3C/svg%3E"
+        />
         <style>
             :root {
                 --bg: #f4f6f9;
@@ -358,7 +363,33 @@
     </head>
     <body>
         <header>
-            <h1>📺 TV-Trac</h1>
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem">
+                    <svg
+                        width="28"
+                        height="28"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#e94560"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <rect x="2" y="7" width="20" height="14" rx="2" />
+                        <polyline points="17 2 12 7 7 2" />
+                    </svg>
+                    <h1>TV-Trac</h1>
+                </div>
+                <p
+                    style="
+                        color: var(--text-muted);
+                        font-size: 0.75rem;
+                        margin-top: 0.1rem;
+                    "
+                >
+                    Track your TV shows &amp; movies
+                </p>
+            </div>
             <div>
                 <span
                     id="media-label"
@@ -460,6 +491,8 @@
                         <option value="alpha">A-Z</option>
                         <option value="zalpha">Z-A</option>
                         <option value="recent">Recently Added</option>
+                        <option value="rating-desc">Rating: High to Low</option>
+                        <option value="rating-asc">Rating: Low to High</option>
                     </select>
                     <select
                         id="shows-date-filter"
@@ -473,12 +506,37 @@
                             font-size: 0.8rem;
                         "
                     >
-                        <option value="all">All dates</option>
-                        <option value="1">Last day</option>
-                        <option value="3">Last 3 days</option>
-                        <option value="7">Last 7 days</option>
-                        <option value="30">Last 30 days</option>
+                        <option value="" disabled selected>
+                            New Content Filter
+                        </option>
+                        <option value="all">All Time</option>
+                        <option value="1">Added in last day</option>
+                        <option value="3">Added in last 3 days</option>
+                        <option value="7">Added in last 7 days</option>
+                        <option value="30">Added in last 30 days</option>
                     </select>
+                    <select
+                        id="shows-rating-filter"
+                        onchange="applyShowFilters()"
+                        style="
+                            background: var(--surface);
+                            color: var(--text);
+                            border: 1px solid var(--border);
+                            border-radius: 6px;
+                            padding: 0.4rem 0.6rem;
+                            font-size: 0.8rem;
+                        "
+                    >
+                        <option value="0">Any rating</option>
+                        <option value="1">1 ★</option>
+                        <option value="2">2 ★</option>
+                        <option value="3">3 ★</option>
+                        <option value="4">4 ★</option>
+                        <option value="5">5 ★</option>
+                    </select>
+                    <button class="filter-btn" onclick="clearAllFilters()">
+                        ✕ Clear All
+                    </button>
                     <button
                         class="filter-btn"
                         onclick="toggleShowView()"
@@ -540,6 +598,12 @@
                     >
                         ○ Unwatched
                     </button>
+                    <button
+                        class="filter-btn"
+                        onclick="setMovieFilter('watchlist', this)"
+                    >
+                        ★ Watchlist
+                    </button>
                     <select
                         id="movies-sort"
                         onchange="applyMovieFilters()"
@@ -554,8 +618,40 @@
                         "
                     >
                         <option value="alpha">A-Z</option>
+                        <option value="zalpha">Z-A</option>
                         <option value="recent">Recently Added</option>
+                        <option value="rating-desc">Rating: High to Low</option>
+                        <option value="rating-asc">Rating: Low to High</option>
                     </select>
+                    <select
+                        id="movies-rating-filter"
+                        onchange="applyMovieFilters()"
+                        style="
+                            background: var(--surface);
+                            color: var(--text);
+                            border: 1px solid var(--border);
+                            border-radius: 6px;
+                            padding: 0.4rem 0.6rem;
+                            font-size: 0.8rem;
+                        "
+                    >
+                        <option value="0">Any rating</option>
+                        <option value="1">1 ★</option>
+                        <option value="2">2 ★</option>
+                        <option value="3">3 ★</option>
+                        <option value="4">4 ★</option>
+                        <option value="5">5 ★</option>
+                    </select>
+                    <button class="filter-btn" onclick="clearAllMovieFilters()">
+                        ✕ Clear All
+                    </button>
+                    <button
+                        class="filter-btn"
+                        onclick="toggleMovieView()"
+                        id="movie-view-toggle"
+                    >
+                        ☰ List
+                    </button>
                 </div>
                 <div class="card">
                     <h2>
@@ -817,6 +913,25 @@
                 btn.classList.add("active");
                 applyShowFilters();
             }
+            function clearAllFilters() {
+                showFilter = "all";
+                showSearch = "";
+                showCurrentPage = 1;
+                document.getElementById("shows-search").value = "";
+                document.getElementById("shows-sort").value = "alpha";
+                document.getElementById("shows-date-filter").value = "";
+                document.getElementById("shows-rating-filter").value = "0";
+                // Reset active filter button to All
+                document
+                    .querySelectorAll("#page-shows .filter-btn")
+                    .forEach(function (b) {
+                        b.classList.remove("active");
+                        if (b.textContent.trim() === "All") {
+                            b.classList.add("active");
+                        }
+                    });
+                applyShowFilters();
+            }
             function clearShowSearch() {
                 document.getElementById("shows-search").value = "";
                 applyShowFilters();
@@ -858,16 +973,25 @@
                     filtered = filtered.filter(function (s) {
                         return s.hidden !== true;
                     });
-                // Date range filter
+                // Date range filter (empty placeholder or "all" = no filter)
                 var dateFilter =
                     document.getElementById("shows-date-filter").value;
-                if (dateFilter !== "all") {
+                if (dateFilter && dateFilter !== "all") {
                     var days = parseInt(dateFilter);
                     var cutoff = new Date();
                     cutoff.setDate(cutoff.getDate() - days);
                     filtered = filtered.filter(function (s) {
                         var d = new Date(s.updated_at);
                         return d >= cutoff;
+                    });
+                }
+                // Rating filter
+                var ratingFilter = parseInt(
+                    document.getElementById("shows-rating-filter").value,
+                );
+                if (ratingFilter > 0) {
+                    filtered = filtered.filter(function (s) {
+                        return s.rating === ratingFilter;
                     });
                 }
                 // Compute counts: total / visible / hidden
@@ -897,6 +1021,14 @@
                 else if (sort === "zalpha")
                     filtered = filtered.slice().sort(function (a, b) {
                         return b.title.localeCompare(a.title);
+                    });
+                else if (sort === "rating-desc")
+                    filtered = filtered.slice().sort(function (a, b) {
+                        return b.rating - a.rating;
+                    });
+                else if (sort === "rating-asc")
+                    filtered = filtered.slice().sort(function (a, b) {
+                        return a.rating - b.rating;
                     });
                 if (showSearch) {
                     document.getElementById("show-count").innerHTML =
@@ -987,6 +1119,13 @@
                             '" style="margin-left:0.5rem;">' +
                             watchBadgeLabel(s.part_watched) +
                             "</span>" +
+                            (s.rating > 0
+                                ? '<span style="color:#f1c40f;font-size:0.75rem;margin-left:0.5rem;" title="' +
+                                  s.rating +
+                                  ' stars">' +
+                                  "★".repeat(s.rating) +
+                                  "</span>"
+                                : "") +
                             (s.tvdb_slug
                                 ? '<a class="ext-link" href="https://thetvdb.com/series/' +
                                   s.tvdb_slug +
@@ -1029,6 +1168,11 @@
                             '" style="font-size:0.65rem;">' +
                             watchBadgeLabel(s.part_watched) +
                             "</span>" +
+                            (s.rating > 0
+                                ? '<span style="color:#f1c40f;font-size:0.7rem;margin-left:0.4rem;">' +
+                                  "★".repeat(s.rating) +
+                                  "</span>"
+                                : "") +
                             (s.missing_count > 0
                                 ? '<div style="color:var(--accent);font-size:0.65rem;margin-top:0.2rem;" title="' +
                                   escapeHtml(s.missing_details || "") +
@@ -1285,7 +1429,8 @@
             var movieFilter = "all",
                 movieSearch = "",
                 moviePage = 1,
-                moviePerPage = 10;
+                moviePerPage = 10,
+                movieViewMode = "grid";
             function setMovieFilter(f, btn) {
                 movieFilter = f;
                 document
@@ -1300,6 +1445,23 @@
                 document.getElementById("movies-search").value = "";
                 applyMovieFilters();
                 document.getElementById("movies-search").focus();
+            }
+            function clearAllMovieFilters() {
+                movieFilter = "all";
+                movieSearch = "";
+                moviePage = 1;
+                document.getElementById("movies-search").value = "";
+                document.getElementById("movies-sort").value = "alpha";
+                document.getElementById("movies-rating-filter").value = "0";
+                document
+                    .querySelectorAll("#page-movies .filter-btn")
+                    .forEach(function (b) {
+                        b.classList.remove("active");
+                        if (b.textContent.trim() === "All") {
+                            b.classList.add("active");
+                        }
+                    });
+                applyMovieFilters();
             }
             function applyMovieFilters() {
                 movieSearch = document
@@ -1322,10 +1484,35 @@
                     filtered = filtered.filter(function (m) {
                         return !m.watched;
                     });
+                else if (movieFilter === "watchlist")
+                    filtered = filtered.filter(function (m) {
+                        return m.watchlist === true;
+                    });
+                // Rating filter
+                var ratingFilter = parseInt(
+                    document.getElementById("movies-rating-filter").value,
+                );
+                if (ratingFilter > 0) {
+                    filtered = filtered.filter(function (m) {
+                        return m.rating === ratingFilter;
+                    });
+                }
                 var sort = document.getElementById("movies-sort").value;
                 if (sort === "recent")
                     filtered = filtered.slice().sort(function (a, b) {
                         return new Date(b.updated_at) - new Date(a.updated_at);
+                    });
+                else if (sort === "zalpha")
+                    filtered = filtered.slice().sort(function (a, b) {
+                        return b.title.localeCompare(a.title);
+                    });
+                else if (sort === "rating-desc")
+                    filtered = filtered.slice().sort(function (a, b) {
+                        return b.rating - a.rating;
+                    });
+                else if (sort === "rating-asc")
+                    filtered = filtered.slice().sort(function (a, b) {
+                        return a.rating - b.rating;
                     });
                 document.getElementById("movie-count").textContent =
                     "(" + filtered.length + ")";
@@ -1335,8 +1522,12 @@
                 );
                 var start = (moviePage - 1) * moviePerPage;
                 var paged = filtered.slice(start, start + moviePerPage);
-                document.getElementById("movies-list").innerHTML =
-                    renderMovieList(paged);
+                var listEl = document.getElementById("movies-list");
+                listEl.className = movieViewMode === "grid" ? "grid-view" : "";
+                listEl.innerHTML =
+                    movieViewMode === "grid"
+                        ? renderMovieGrid(paged)
+                        : renderMovieList(paged);
                 renderPagination(
                     "movies",
                     filtered.length,
@@ -1344,13 +1535,57 @@
                     moviePerPage,
                 );
             }
+
+            function renderMovieGrid(movies) {
+                return movies
+                    .map(function (m) {
+                        return (
+                            '<div class="grid-item" onclick="window.location.href=\'/movie/' +
+                            m.id +
+                            "'\">" +
+                            (m.poster_path
+                                ? '<img class="grid-poster" src="' +
+                                  m.poster_path +
+                                  '" onerror="this.style.display=\'none\'">'
+                                : '<div class="grid-poster"></div>') +
+                            '<div class="grid-title">' +
+                            escapeHtml(m.title) +
+                            (m.watchlist
+                                ? ' <span style="background:#f1c40f;color:#000;font-size:0.6rem;padding:0 0.3rem;border-radius:3px;font-weight:bold;">WL</span>'
+                                : "") +
+                            "</div>" +
+                            '<span class="badge ' +
+                            (m.watched ? "badge-watched" : "badge-unwatched") +
+                            '" style="font-size:0.65rem;">' +
+                            (m.watched ? "✓ watched" : "unwatched") +
+                            "</span>" +
+                            (m.rating > 0
+                                ? '<span style="color:#f1c40f;font-size:0.7rem;margin-left:0.4rem;">' +
+                                  "★".repeat(m.rating) +
+                                  "</span>"
+                                : "") +
+                            "</div>"
+                        );
+                    })
+                    .join("");
+            }
+
+            function toggleMovieView() {
+                movieViewMode = movieViewMode === "list" ? "grid" : "list";
+                document.getElementById("movie-view-toggle").textContent =
+                    movieViewMode === "grid" ? "☰ List" : "▦ Grid";
+                applyMovieFilters();
+            }
+
             function renderMovieList(movies) {
                 return movies
                     .map(function (m) {
                         return (
                             '<div class="card" data-movie-id="' +
                             m.id +
-                            '">' +
+                            '" style="cursor:pointer" onclick="window.location.href=\'/movie/' +
+                            m.id +
+                            "'\">" +
                             '<div class="card-title">' +
                             (m.poster_path
                                 ? '<img class="thumb" src="' +
@@ -1401,6 +1636,13 @@
                             ">" +
                             (m.watched ? "✓ watched" : "unwatched") +
                             "</span>" +
+                            (m.rating > 0
+                                ? '<span style="color:#f1c40f;font-size:0.75rem;margin-left:0.5rem;" title="' +
+                                  m.rating +
+                                  ' stars">' +
+                                  "★".repeat(m.rating) +
+                                  "</span>"
+                                : "") +
                             (m.tmdb_id
                                 ? '<a class="ext-link" href="https://www.themoviedb.org/movie/' +
                                   m.tmdb_id +
@@ -1450,10 +1692,33 @@
 
             // ── SCAN ───────────────────────────────────────────────────────
             async function scanMedia() {
+                // Switch to the Shows page so results are visible
+                document.querySelectorAll("nav a").forEach(function (a) {
+                    a.classList.remove("active");
+                });
+                var showsLink = document.querySelector("nav a");
+                if (showsLink) showsLink.classList.add("active");
+                document.getElementById("page-shows").style.display = "block";
+                document.getElementById("page-movies").style.display = "none";
+
                 var el = document.getElementById("shows-list");
                 el.innerHTML = '<p class="loading">Scanning shows...</p>';
+
+                // Count-up timer for visual feedback
+                var seconds = 0;
+                var timerEl = document.createElement("p");
+                timerEl.style.color = "var(--accent)";
+                timerEl.style.fontWeight = "bold";
+                timerEl.textContent = "Elapsed: 0s";
+                el.appendChild(timerEl);
+                var timer = setInterval(function () {
+                    seconds++;
+                    timerEl.textContent = "Elapsed: " + seconds + "s";
+                }, 1000);
+
                 try {
                     var data = await apiFetch("/api/scan", { method: "POST" });
+                    clearInterval(timer);
                     var count =
                         data.shows_synced != null
                             ? data.shows_synced
@@ -1490,6 +1755,7 @@
 
                     el.innerHTML = html;
                 } catch (e) {
+                    clearInterval(timer);
                     el.innerHTML =
                         '<p class="error">Scan failed: ' +
                         escapeHtml(e.message) +
@@ -1586,6 +1852,14 @@
 
             loadShowState();
             restoreShowUI();
+
+            // Switch to movies tab if requested via URL (?tab=movies)
+            var params = new URLSearchParams(window.location.search);
+            if (params.get("tab") === "movies") {
+                var moviesLink = document.querySelectorAll("nav a")[1];
+                if (moviesLink) showPage("movies", moviesLink);
+            }
+
             fetchShows();
         </script>
     </body>

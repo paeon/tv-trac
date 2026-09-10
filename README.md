@@ -59,8 +59,8 @@ Open `http://localhost:8000` and click **Scan**.
 TVDB_API_KEY=your_tvdb_key
 TVDB_PIN=
 TMDB_API_KEY=your_tmdb_key
-MEDIA_HOST_PATH=/home/user/tv
-MEDIA_HOST_MOVIES=/home/user/movies
+MEDIA_HOST_TV_PATH=/home/user/tv
+MEDIA_HOST_MOVIES_PATH=/home/user/movies
 MEDIA_ROOT=/media/tv
 MEDIA_ROOT_MOVIES=/media/movies
 DATABASE_URL=sqlite+aiosqlite:///./data/tvtrac.db
