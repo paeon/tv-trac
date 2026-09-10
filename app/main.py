@@ -13,7 +13,8 @@ from fastapi.templating import Jinja2Templates
 from app.config import settings
 from app.database import init_db
 from app.models.movie import Movie  # noqa: F401 — register model
-from app.routers import movies, scan, shows, tvdb
+from app.routers import episodes, movies, scan, shows, tvdb
+from app.services.images import IMAGE_DIR
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,6 +42,10 @@ static_dir = Path(__file__).parent / "static"
 static_dir.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
+# Mount locally-cached posters
+IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/images", StaticFiles(directory=str(IMAGE_DIR)), name="images")
+
 
 # Global exception handler — logs full traceback and returns it for debugging
 @app.exception_handler(Exception)
@@ -58,6 +63,7 @@ app.include_router(shows.router)
 app.include_router(scan.router)
 app.include_router(tvdb.router)
 app.include_router(movies.router)
+app.include_router(episodes.router)
 
 
 # ── Web UI ───────────────────────────────────────────────────────────────────
@@ -91,4 +97,13 @@ async def movie_detail(request: Request, movie_id: int):
     return templates.TemplateResponse(
         "movie_detail.html",
         {"request": request, "movie_id": movie_id},
+    )
+
+
+@app.get("/recent-episodes")
+async def recent_episodes_page(request: Request):
+    """Serve the recently-aired episodes page."""
+    return templates.TemplateResponse(
+        "recent_episodes.html",
+        {"request": request},
     )

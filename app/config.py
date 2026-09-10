@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "sqlite+aiosqlite:///./data/tvtrac.db"
 
+    # Local image cache
+    image_dir: str = "./data/images"
+
     # App
     app_host: str = "0.0.0.0"
     app_port: int = 8000

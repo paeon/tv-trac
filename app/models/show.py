@@ -55,6 +55,7 @@ class Season(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False)
     season_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    poster_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     part_watched: Mapped[str] = mapped_column(
         String(10), default="unwatched", nullable=False
     )
@@ -85,6 +86,7 @@ class Episode(Base):
     watched: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     watched_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     file_path: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    image_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
     season: Mapped[Season] = relationship("Season", back_populates="episodes")
 

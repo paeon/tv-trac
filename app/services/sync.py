@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.show import Episode, Season, Show
 from app.services.check import check_missing
+from app.services.images import download_image
 from app.services.scanner import ScannedShow, scan_media_root
 from app.services.tvdb import tvdb
 
@@ -201,7 +202,6 @@ async def _sync_one_show(
             title=title,
             tvdb_id=tvdb_id,
             overview=tvdb_overview,
-            poster_path=tvdb_poster,
             first_aired=tvdb_first_aired,
             tvdb_slug=tvdb_slug,
         )
@@ -215,12 +215,20 @@ async def _sync_one_show(
             show.tvdb_id = tvdb_id
         if tvdb_overview and not show.overview:
             show.overview = tvdb_overview
-        if tvdb_poster and not show.poster_path:
-            show.poster_path = tvdb_poster
         if tvdb_first_aired and not show.first_aired:
             show.first_aired = tvdb_first_aired
         if tvdb_slug and not show.tvdb_slug:
             show.tvdb_slug = tvdb_slug
+
+    # Store the poster locally (downloads on first scan, reuses cached file)
+    if tvdb_poster and (
+        not show.poster_path or show.poster_path.startswith(("http://", "https://"))
+    ):
+        local_poster = await download_image(tvdb_poster, "show", show.id)
+        if local_poster:
+            show.poster_path = local_poster
+        elif not show.poster_path:
+            show.poster_path = tvdb_poster
 
     # ── 3. Upsert Seasons and Episodes ──────────────────────────────────
     season_summaries = []
@@ -243,10 +251,14 @@ async def _sync_one_show(
         # Try to get TVDB metadata for this season's episodes
         # Use get_season_extended for full episode details including overview
         tvdb_episodes: dict[int, dict[str, Any]] = {}
+        tvdb_season_poster: str | None = None
         tvdb_season_id = tvdb_seasons.get(season_num)
         if tvdb_season_id:
             try:
                 season_ext = await tvdb.get_season_extended(tvdb_season_id)
+                tvdb_season_poster = season_ext.get("image") or season_ext.get(
+                    "image_url"
+                )
                 for ep in season_ext.get("episodes") or []:
                     ep_num = ep.get("number")
                     if ep_num is not None:
@@ -255,6 +267,17 @@ async def _sync_one_show(
                 logger.warning(
                     "Failed to get season extended for season %d", season_num
                 )
+
+        # Store the season poster locally
+        if tvdb_season_poster and (
+            not season.poster_path
+            or season.poster_path.startswith(("http://", "https://"))
+        ):
+            local_poster = await download_image(tvdb_season_poster, "season", season.id)
+            if local_poster:
+                season.poster_path = local_poster
+            elif not season.poster_path:
+                season.poster_path = tvdb_season_poster
 
         # Upsert each scanned episode
         ep_count = 0
@@ -287,6 +310,7 @@ async def _sync_one_show(
                     file_path=scanned_ep.file_path,
                 )
                 db.add(episode)
+                await db.flush()
             else:
                 # Enrich existing episodes with TVDB metadata
                 if not episode.file_path:
@@ -314,6 +338,19 @@ async def _sync_one_show(
                         episode.air_date = ad
                 if episode.runtime is None and tvdb_ep.get("runtime"):
                     episode.runtime = tvdb_ep["runtime"]
+
+            # Store the episode screencap locally
+            screencap = tvdb_ep.get("image")
+            if screencap and (
+                not episode.image_path
+                or episode.image_path.startswith(("http://", "https://"))
+            ):
+                local_image = await download_image(screencap, "episode", episode.id)
+                if local_image:
+                    episode.image_path = local_image
+                elif not episode.image_path:
+                    episode.image_path = screencap
+
             ep_count += 1
 
         season_summaries.append(

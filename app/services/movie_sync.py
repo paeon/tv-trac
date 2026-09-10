@@ -12,6 +12,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.movie import Movie
+from app.services.images import download_image
 from app.services.movie_scanner import scan_movie_root
 from app.services.nfo import find_nfo
 from app.services.tmdb import IMAGE_BASE, tmdb
@@ -121,12 +122,12 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
             title=sm.title,
             tmdb_id=tmdb_id,
             overview=overview,
-            poster_path=poster,
             first_aired=first_aired,
             runtime=runtime,
             file_path=sm.file_path,
         )
         db.add(movie)
+        await db.flush()
     else:
         if movie.deleted:
             movie.deleted = False
@@ -134,14 +135,22 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
             movie.tmdb_id = tmdb_id
         if overview and not movie.overview:
             movie.overview = overview
-        if poster and not movie.poster_path:
-            movie.poster_path = poster
         if first_aired and not movie.first_aired:
             movie.first_aired = first_aired
         if runtime and not movie.runtime:
             movie.runtime = runtime
         if not movie.file_path and sm.file_path:
             movie.file_path = sm.file_path
+
+    # Store the poster locally (downloads on first scan, reuses cached file)
+    if poster and (
+        not movie.poster_path or movie.poster_path.startswith(("http://", "https://"))
+    ):
+        local_poster = await download_image(poster, "movie", movie.id)
+        if local_poster:
+            movie.poster_path = local_poster
+        elif not movie.poster_path:
+            movie.poster_path = poster
 
     await db.commit()
 

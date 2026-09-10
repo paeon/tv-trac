@@ -30,6 +30,7 @@ class EpisodeOut(BaseModel):
     watched: bool
     watched_at: datetime | None
     file_path: str | None
+    image_path: str | None
 
 
 # ── Season ───────────────────────────────────────────────────────────────────
@@ -46,6 +47,7 @@ class SeasonOut(BaseModel):
     id: int
     show_id: int
     season_number: int
+    poster_path: str | None
     part_watched: str
     created_at: datetime
     episodes: list[EpisodeOut] = []

@@ -415,6 +415,7 @@
         <nav>
             <a class="active" onclick="showPage('shows', this)">📺 Shows</a>
             <a onclick="showPage('movies', this)">🎬 Movies</a>
+            <a href="/recent-episodes">🕒 Recent Episodes</a>
         </nav>
         <main>
             <!-- SHOWS PAGE -->
@@ -491,6 +492,8 @@
                         <option value="alpha">A-Z</option>
                         <option value="zalpha">Z-A</option>
                         <option value="recent">Recently Added</option>
+                        <option value="aired-desc">First Aired: Newest</option>
+                        <option value="aired-asc">First Aired: Oldest</option>
                         <option value="rating-desc">Rating: High to Low</option>
                         <option value="rating-asc">Rating: Low to High</option>
                     </select>
@@ -514,6 +517,28 @@
                         <option value="3">Added in last 3 days</option>
                         <option value="7">Added in last 7 days</option>
                         <option value="30">Added in last 30 days</option>
+                    </select>
+                    <select
+                        id="shows-aired-filter"
+                        onchange="applyShowFilters()"
+                        style="
+                            background: var(--surface);
+                            color: var(--text);
+                            border: 1px solid var(--border);
+                            border-radius: 6px;
+                            padding: 0.4rem 0.6rem;
+                            font-size: 0.8rem;
+                        "
+                    >
+                        <option value="" disabled selected>
+                            First Aired Filter
+                        </option>
+                        <option value="all">All Time</option>
+                        <option value="1">Premiered in last year</option>
+                        <option value="3">Premiered in last 3 years</option>
+                        <option value="5">Premiered in last 5 years</option>
+                        <option value="10">Premiered in last 10 years</option>
+                        <option value="older">Premiered over 10 years ago</option>
                     </select>
                     <select
                         id="shows-rating-filter"
@@ -620,8 +645,32 @@
                         <option value="alpha">A-Z</option>
                         <option value="zalpha">Z-A</option>
                         <option value="recent">Recently Added</option>
+                        <option value="aired-desc">First Aired: Newest</option>
+                        <option value="aired-asc">First Aired: Oldest</option>
                         <option value="rating-desc">Rating: High to Low</option>
                         <option value="rating-asc">Rating: Low to High</option>
+                    </select>
+                    <select
+                        id="movies-aired-filter"
+                        onchange="applyMovieFilters()"
+                        style="
+                            background: var(--surface);
+                            color: var(--text);
+                            border: 1px solid var(--border);
+                            border-radius: 6px;
+                            padding: 0.4rem 0.6rem;
+                            font-size: 0.8rem;
+                        "
+                    >
+                        <option value="" disabled selected>
+                            Release Date Filter
+                        </option>
+                        <option value="all">All Time</option>
+                        <option value="1">Released in last year</option>
+                        <option value="3">Released in last 3 years</option>
+                        <option value="5">Released in last 5 years</option>
+                        <option value="10">Released in last 10 years</option>
+                        <option value="older">Released over 10 years ago</option>
                     </select>
                     <select
                         id="movies-rating-filter"
@@ -814,6 +863,32 @@
                     dd + "/" + mm + "/" + yyyy + " " + hh + ":" + min + ":" + ss
                 );
             }
+            function compareFirstAired(a, b) {
+                var da = a.first_aired || "",
+                    db = b.first_aired || "";
+                if (!da && !db) return 0;
+                if (!da) return 1;
+                if (!db) return -1;
+                return da.localeCompare(db);
+            }
+            function airedMatches(dateStr, filterVal) {
+                if (!filterVal || filterVal === "all") return true;
+                if (!dateStr) return false;
+                var p = dateStr.split("-");
+                if (p.length !== 3) return false;
+                var y = parseInt(p[0]),
+                    m = parseInt(p[1]),
+                    d = parseInt(p[2]);
+                if (isNaN(y) || isNaN(m) || isNaN(d)) return false;
+                var aired = new Date(Date.UTC(y, m - 1, d));
+                var now = new Date();
+                var years =
+                    (now.getTime() - aired.getTime()) /
+                    (1000 * 60 * 60 * 24 * 365.25);
+                if (filterVal === "older") return years > 10;
+                var maxYears = parseInt(filterVal);
+                return years >= 0 && years <= maxYears;
+            }
 
             // ── Notes ──────────────────────────────────────────────────────
             function toggleNotes(id, iconEl, ev, api) {
@@ -920,6 +995,7 @@
                 document.getElementById("shows-search").value = "";
                 document.getElementById("shows-sort").value = "alpha";
                 document.getElementById("shows-date-filter").value = "";
+                document.getElementById("shows-aired-filter").value = "";
                 document.getElementById("shows-rating-filter").value = "0";
                 // Reset active filter button to All
                 document
@@ -985,6 +1061,12 @@
                         return d >= cutoff;
                     });
                 }
+                // First-aired filter (actual premiere date, not scan date)
+                var airedFilter =
+                    document.getElementById("shows-aired-filter").value;
+                filtered = filtered.filter(function (s) {
+                    return airedMatches(s.first_aired, airedFilter);
+                });
                 // Rating filter
                 var ratingFilter = parseInt(
                     document.getElementById("shows-rating-filter").value,
@@ -1018,6 +1100,12 @@
                     filtered = filtered.slice().sort(function (a, b) {
                         return new Date(b.updated_at) - new Date(a.updated_at);
                     });
+                else if (sort === "aired-desc")
+                    filtered = filtered.slice().sort(function (a, b) {
+                        return -compareFirstAired(a, b);
+                    });
+                else if (sort === "aired-asc")
+                    filtered = filtered.slice().sort(compareFirstAired);
                 else if (sort === "zalpha")
                     filtered = filtered.slice().sort(function (a, b) {
                         return b.title.localeCompare(a.title);
@@ -1452,6 +1540,7 @@
                 moviePage = 1;
                 document.getElementById("movies-search").value = "";
                 document.getElementById("movies-sort").value = "alpha";
+                document.getElementById("movies-aired-filter").value = "";
                 document.getElementById("movies-rating-filter").value = "0";
                 document
                     .querySelectorAll("#page-movies .filter-btn")
@@ -1488,6 +1577,12 @@
                     filtered = filtered.filter(function (m) {
                         return m.watchlist === true;
                     });
+                // Release-date filter (actual release date, not scan date)
+                var airedFilter =
+                    document.getElementById("movies-aired-filter").value;
+                filtered = filtered.filter(function (m) {
+                    return airedMatches(m.first_aired, airedFilter);
+                });
                 // Rating filter
                 var ratingFilter = parseInt(
                     document.getElementById("movies-rating-filter").value,
@@ -1502,6 +1597,12 @@
                     filtered = filtered.slice().sort(function (a, b) {
                         return new Date(b.updated_at) - new Date(a.updated_at);
                     });
+                else if (sort === "aired-desc")
+                    filtered = filtered.slice().sort(function (a, b) {
+                        return -compareFirstAired(a, b);
+                    });
+                else if (sort === "aired-asc")
+                    filtered = filtered.slice().sort(compareFirstAired);
                 else if (sort === "zalpha")
                     filtered = filtered.slice().sort(function (a, b) {
                         return b.title.localeCompare(a.title);

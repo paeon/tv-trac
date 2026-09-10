@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recently Aired — TV-Trac</title>
+    <link
+        rel="icon"
+        type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e94560' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='7' width='20' height='14' rx='2'/%3E%3Cpolyline points='17 2 12 7 7 2'/%3E%3C/svg%3E"
+    />
+    <style>
+        :root {
+            --bg: #f4f6f9;
+            --surface: #ffffff;
+            --accent: #e94560;
+            --text: #1a1a2e;
+            --text-muted: #6b7280;
+            --border: #e0e4e8;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family:
+                -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+                Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        header {
+            background: var(--surface);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 {
+            font-size: 1.3rem;
+            color: var(--accent);
+        }
+        header p {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            margin-top: 0.1rem;
+        }
+        header a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        header a:hover {
+            color: var(--accent);
+        }
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .toolbar h2 {
+            font-size: 1.1rem;
+            margin-right: auto;
+        }
+        .toolbar select,
+        .toolbar label {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.8rem;
+        }
+        .hide-watched {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .episode-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .episode-row:last-child {
+            border-bottom: none;
+        }
+        .episode-row .thumb {
+            width: 42px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            background: var(--border);
+            flex-shrink: 0;
+        }
+        .episode-row .thumb.episode {
+            width: 96px;
+            height: 54px;
+        }
+        .episode-main {
+            flex: 1;
+            min-width: 0;
+        }
+        .episode-main .show-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .episode-main .show-title a {
+            color: var(--text);
+            text-decoration: none;
+        }
+        .episode-main .show-title a:hover {
+            color: var(--accent);
+        }
+        .episode-main .ep-title {
+            color: var(--text);
+            font-size: 0.85rem;
+            margin-top: 0.15rem;
+        }
+        .episode-meta {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            margin-top: 0.15rem;
+        }
+        .hidden-badge {
+            background: #fde8ec;
+            color: #b02a37;
+            font-size: 0.65rem;
+            padding: 0 0.4rem;
+            border-radius: 3px;
+            font-weight: 600;
+            vertical-align: middle;
+            margin-left: 0.3rem;
+        }
+        .unhide-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--accent);
+            font-size: 0.65rem;
+            padding: 0 0.4rem;
+            border-radius: 3px;
+            cursor: pointer;
+            vertical-align: middle;
+            margin-left: 0.3rem;
+        }
+        .unhide-btn:hover {
+            border-color: var(--accent);
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .badge-watched {
+            background: #e6f4ea;
+            color: #137333;
+        }
+        .badge-unwatched {
+            background: #eef0f3;
+            color: #6b7280;
+        }
+        .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--border);
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            font-weight: 700;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .popover {
+            position: fixed;
+            background: #1a1a2e;
+            color: #fff;
+            padding: 0.6rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            max-width: 360px;
+            z-index: 1000;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            line-height: 1.4;
+        }
+        .loading,
+        .error {
+            color: var(--text-muted);
+            padding: 1rem;
+            text-align: center;
+        }
+        .error {
+            color: var(--accent);
+        }
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-top: 2rem;
+        }
+        footer a {
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem">
+                <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#e94560"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <rect x="2" y="7" width="20" height="14" rx="2" />
+                    <polyline points="17 2 12 7 7 2" />
+                </svg>
+                <h1>TV-Trac</h1>
+            </div>
+            <p>Track your TV shows &amp; movies</p>
+        </div>
+        <a href="/">← Back to shows</a>
+    </header>
+
+    <main>
+        <div class="toolbar">
+            <h2>Recently Aired Episodes</h2>
+            <label for="order">Order</label>
+            <select id="order" onchange="load()">
+                <option value="desc" selected>Newest first</option>
+                <option value="asc">Oldest first</option>
+            </select>
+            <label for="limit">Limit</label>
+            <select id="limit" onchange="load()">
+                <option value="25">25</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+            </select>
+            <label class="hide-watched">
+                <input type="checkbox" id="hide-watched" onchange="load()" />
+                Hide watched
+            </label>
+        </div>
+
+        <div id="list" class="loading">Loading episodes...</div>
+    </main>
+
+    <footer>
+        TV data provided by <a href="https://thetvdb.com" target="_blank">TheTVDB</a>.
+    </footer>
+
+    <script>
+        var activePopover = null;
+        function dismissPopover() { if (activePopover) { activePopover.remove(); activePopover = null; } }
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('info-icon')) {
+                e.stopPropagation(); e.preventDefault();
+                if (activePopover) { dismissPopover(); return; }
+                var overview = e.target.getAttribute('data-overview');
+                if (!overview) return;
+                var pop = document.createElement('div'); pop.className = 'popover'; pop.textContent = overview;
+                document.body.appendChild(pop);
+                var rect = e.target.getBoundingClientRect();
+                var top = rect.bottom + 4, left = Math.max(8, rect.left - 180);
+                if (top + 120 > window.innerHeight) top = rect.top - 130;
+                pop.style.top = top + 'px'; pop.style.left = left + 'px';
+                activePopover = pop; return;
+            }
+            if (activePopover && activePopover.contains(e.target)) return;
+            if (activePopover) dismissPopover();
+        }, true);
+
+        function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        function formatDateLong(d) { if (!d) return ''; var p = d.split('-'); if (p.length !== 3) return d; var y = parseInt(p[0]), m = parseInt(p[1]), dd = parseInt(p[2]); if (isNaN(y) || isNaN(m) || isNaN(dd)) return d; return MONTHS[m-1] + ' ' + dd + ', ' + y; }
+        function infoIcon(overview) { if (!overview) return ''; return '<span class="info-icon" data-overview="' + escapeHtml(overview).replace(/"/g, '&quot;') + '" title="Overview">i</span>'; }
+
+        function pad(n) { return String(n).padStart(2, '0'); }
+
+        async function unhideShow(showId) {
+            await fetch('/api/shows/' + showId + '/hidden?hidden=false', { method: 'PATCH' });
+            load();
+        }
+
+        async function load() {
+            var el = document.getElementById('list');
+            var order = document.getElementById('order').value;
+            var limit = document.getElementById('limit').value;
+            var excludeWatched = document.getElementById('hide-watched').checked;
+            el.className = 'loading';
+            el.textContent = 'Loading episodes...';
+            try {
+                var resp = await fetch('/api/episodes/recent?limit=' + limit + '&order=' + order + '&exclude_watched=' + excludeWatched);
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                var data = await resp.json();
+                var eps = data.episodes || [];
+                if (!eps.length) {
+                    el.className = '';
+                    el.innerHTML = '<p class="loading">No episodes found.</p>';
+                    return;
+                }
+                el.className = '';
+                el.innerHTML = '<div class="card">' + eps.map(function (ep) {
+                    var link = '/show/' + ep.show_id + '?episode=' + ep.id + '&season=' + ep.season_number;
+                    var thumbSrc = ep.episode_image || ep.show_poster;
+                    var isEpisode = !!ep.episode_image;
+                    return '<div class="episode-row">' +
+                        (thumbSrc
+                            ? '<img class="thumb' + (isEpisode ? ' episode' : '') + '" src="' + thumbSrc + '" onerror="this.style.display=\'none\'">'
+                            : '<div class="thumb"></div>') +
+                        '<div class="episode-main">' +
+                            '<div class="show-title"><a href="' + link + '">' + escapeHtml(ep.show_title || 'Unknown show') + '</a>' +
+                            (ep.show_hidden
+                                ? ' <span class="hidden-badge" title="This show is hidden from the main listings">👁 hidden</span>' +
+                                  ' <button class="unhide-btn" onclick="unhideShow(' + ep.show_id + ')">unhide</button>'
+                                : '') +
+                            '</div>' +
+                            '<div class="ep-title">S' + pad(ep.season_number) + 'E' + pad(ep.episode_number) + ' - ' + escapeHtml(ep.title || 'Episode ' + ep.episode_number) + (ep.runtime ? ' (' + ep.runtime + 'm)' : '') + '</div>' +
+                            '<div class="episode-meta">' + (ep.air_date ? formatDateLong(ep.air_date) : '') + '</div>' +
+                        '</div>' +
+                        infoIcon(ep.overview) +
+                        '<span class="badge ' + (ep.watched ? 'badge-watched' : 'badge-unwatched') + '">' + (ep.watched ? '✓ watched' : 'unwatched') + '</span>' +
+                    '</div>';
+                }).join('') + '</div>';
+            } catch (e) {
+                el.className = '';
+                el.innerHTML = '<p class="error">Failed: ' + escapeHtml(e.message) + '</p>';
+            }
+        }
+
+        load();
+    </script>
+</body>
+</html>
