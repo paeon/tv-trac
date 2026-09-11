@@ -4,6 +4,7 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>TV-Trac</title>
+        <script src="/static/app.js"></script>
         <link
             rel="icon"
             type="image/svg+xml"
@@ -396,6 +397,20 @@
                     style="color: var(--text-muted); font-size: 0.85rem"
                     >TV: {{ media_tv }}</span
                 >
+                <button
+                    id="locale-toggle"
+                    onclick="TVTracI18n.openPicker(this, onLocaleSelect, event)"
+                    title="Change date/time format"
+                    style="
+                        margin-left: 0.75rem;
+                        background: none;
+                        border: none;
+                        font-size: 1.3rem;
+                        cursor: pointer;
+                        line-height: 1;
+                        vertical-align: middle;
+                    "
+                >🏳️</button>
                 <button onclick="scanMedia()" style="margin-left: 1rem">
                     🔍 Scan
                 </button>
@@ -826,42 +841,6 @@
                 if (s === "watched") return "watched";
                 if (s === "partial") return "part watched";
                 return "unwatched";
-            }
-            var MONTHS = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
-            function formatDateLong(d) {
-                if (!d) return "";
-                var p = d.split("-");
-                if (p.length !== 3) return d;
-                var y = parseInt(p[0]),
-                    m = parseInt(p[1]),
-                    dd = parseInt(p[2]);
-                if (isNaN(y) || isNaN(m) || isNaN(dd)) return d;
-                return MONTHS[m - 1] + " " + dd + ", " + y;
-            }
-            function formatDate(isoStr) {
-                var dt = new Date(isoStr + (isoStr.endsWith("Z") ? "" : "Z"));
-                var dd = String(dt.getDate()).padStart(2, "0"),
-                    mm = String(dt.getMonth() + 1).padStart(2, "0"),
-                    yyyy = dt.getFullYear(),
-                    hh = String(dt.getHours()).padStart(2, "0"),
-                    min = String(dt.getMinutes()).padStart(2, "0"),
-                    ss = String(dt.getSeconds()).padStart(2, "0");
-                return (
-                    dd + "/" + mm + "/" + yyyy + " " + hh + ":" + min + ":" + ss
-                );
             }
             function compareFirstAired(a, b) {
                 var da = a.first_aired || "",
@@ -1956,6 +1935,16 @@
                 document.getElementById("show-view-toggle").textContent =
                     showViewMode === "grid" ? "☰ List" : "▦ Grid";
             }
+
+            // ── Locale ────────────────────────────────────────────────────
+            function onLocaleSelect() {
+                applyShowFilters();
+                applyMovieFilters();
+            }
+            document.getElementById("locale-toggle").textContent =
+                TVTracI18n.currentFlag();
+            document.getElementById("locale-toggle").title =
+                TVTracI18n.currentLabel();
 
             loadShowState();
             restoreShowUI();

@@ -72,7 +72,7 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 - **Show & movie detail pages** — full metadata, poster, collapsible seasons (expand/collapse all), per-episode watched state, notes, IMDb links, rating, watchlist and hide toggles.
 - **Overview popovers** — click the ⓘ icon to read a show/movie/episode overview without cluttering the screen.
 - **External links** — to TheTVDB (series), TMDB (movie), and IMDb.
-- **UK date formatting** — abbreviated month for air dates (`Jun 14, 2026`) and `dd/mm/yyyy hh:mm:ss` for watched timestamps (with DST-corrected local time).
+- **Configurable date/time format** — a flag button in the header opens a picker to switch between Default, US, UK, and ISO formats; the choice is remembered in the browser.
 - **Persistent UI state** — filter/search/view selections are remembered in the browser.
 
 ---
@@ -224,6 +224,7 @@ ln -s docker-compose.yml compose.yaml
 - **Scan** — the `🔍 Scan` button in the header scans TV shows then movies.
 - **Check Missing** — the `⚠️ Check Missing` button re-checks TV shows against TheTVDB and flags missing seasons/episodes.
 - **Mark watched** — click an episode/movie watched badge; use the calendar link to set a custom date.
+- **Change date/time format** — click the flag button in the header to switch between Default, US, UK, and ISO formats.
 - **Hide a show/movie** — from its detail page ("Hide from listings"). Hidden items still appear when searching under **All**, labelled `hidden`, and can be unhidden from there or the detail page.
 
 ---

@@ -4,6 +4,7 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>TV-Trac — Movie</title>
+        <script src="/static/app.js"></script>
         <link
             rel="icon"
             type="image/svg+xml"
@@ -170,7 +171,15 @@
                     Track your TV shows &amp; movies
                 </p>
             </div>
-            <a href="/?tab=movies">← Back to movies</a>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <button
+                    id="locale-toggle"
+                    onclick="TVTracI18n.openPicker(this, onLocaleSelect, event)"
+                    title="Change date/time format"
+                    style="background:none;border:none;font-size:1.3rem;cursor:pointer;line-height:1;"
+                >🏳️</button>
+                <a href="/?tab=movies">← Back to movies</a>
+            </div>
         </header>
         <main>
             <div id="detail" class="loading">Loading...</div>
@@ -180,8 +189,6 @@
             var MOVIE_ID = {{ movie_id }};
 
             function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-            var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            function formatDateLong(d) { if (!d) return ''; var p = d.split('-'); if (p.length !== 3) return d; return MONTHS[parseInt(p[1])-1] + ' ' + parseInt(p[2]) + ', ' + parseInt(p[0]); }
 
             async function loadDetail() {
                 var el = document.getElementById('detail');
@@ -347,6 +354,12 @@
                 await fetch('/api/movies/' + MOVIE_ID + '/imdb?imdb_id=' + encodeURIComponent(input ? input.value.trim() : ''), {method:'PATCH'});
                 loadDetail();
             }
+
+            function onLocaleSelect() {
+                loadDetail();
+            }
+            document.getElementById('locale-toggle').textContent = TVTracI18n.currentFlag();
+            document.getElementById('locale-toggle').title = TVTracI18n.currentLabel();
 
             loadDetail();
         </script>
