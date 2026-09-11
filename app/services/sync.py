@@ -44,6 +44,14 @@ def _parse_tvdb_id(raw: Any) -> int | None:
     return None
 
 
+def _extract_imdb_id(data: dict[str, Any]) -> str | None:
+    """Pull the IMDb title ID from TheTVDB's `remoteIds` list."""
+    for rid in data.get("remoteIds") or []:
+        if rid.get("type") == 2 or "imdb" in str(rid.get("sourceName") or "").lower():
+            return rid.get("id")
+    return None
+
+
 async def sync_shows(db: AsyncSession) -> dict[str, Any]:
     """Full scan-and-sync pipeline."""
     scanned = scan_media_root()
@@ -117,6 +125,7 @@ async def _sync_one_show(
     tvdb_poster: str | None = None
     tvdb_first_aired: str | None = None
     tvdb_slug: str | None = None
+    tvdb_imdb_id: str | None = None
     tvdb_seasons: dict[int, int] = {}  # season_number -> tvdb_season_id
 
     if tvdb_available:
@@ -175,6 +184,7 @@ async def _sync_one_show(
             # Build season_number -> tvdb_season_id map from the extended response
             # Prefer Aired Order / official seasons over alternate orders
             if extended:
+                tvdb_imdb_id = _extract_imdb_id(extended)
                 for s in extended.get("seasons") or []:
                     sn = s.get("number")
                     sid = s.get("id")
@@ -204,6 +214,7 @@ async def _sync_one_show(
             overview=tvdb_overview,
             first_aired=tvdb_first_aired,
             tvdb_slug=tvdb_slug,
+            imdb_id=tvdb_imdb_id,
         )
         db.add(show)
         await db.flush()
@@ -219,6 +230,8 @@ async def _sync_one_show(
             show.first_aired = tvdb_first_aired
         if tvdb_slug and not show.tvdb_slug:
             show.tvdb_slug = tvdb_slug
+        if tvdb_imdb_id and not show.imdb_id:
+            show.imdb_id = tvdb_imdb_id
 
     # Store the poster locally (downloads on first scan, reuses cached file)
     if tvdb_poster and (

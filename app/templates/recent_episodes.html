@@ -89,12 +89,62 @@
             color: var(--text-muted);
             cursor: pointer;
         }
+        .filter-wrap {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+            overflow: hidden;
+            flex: 1 1 200px;
+        }
+        .filter-input {
+            border: none;
+            background: transparent;
+            color: var(--text);
+            padding: 0.4rem 0.6rem;
+            font-size: 0.8rem;
+            min-width: 120px;
+            outline: none;
+            flex: 1;
+        }
+        .filter-clear {
+            border: none;
+            background: none;
+            color: var(--text-muted);
+            padding: 0 0.5rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: none;
+        }
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 1rem;
             margin-bottom: 1rem;
+        }
+        .card h2 {
+            font-size: 1.15rem;
+            margin-bottom: 0.5rem;
+        }
+        .card h2 span {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-weight: 400;
+        }
+        .clear-btn {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .clear-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
         }
         .episode-row {
             display: flex;
@@ -254,7 +304,22 @@
 
     <main>
         <div class="toolbar">
-            <h2>Recently Aired Episodes</h2>
+            <div class="filter-wrap">
+                <input
+                    type="text"
+                    id="filter"
+                    class="filter-input"
+                    placeholder="Filter shows/episodes..."
+                    oninput="renderList()"
+                />
+                <button
+                    class="filter-clear"
+                    id="filter-clear"
+                    onclick="clearFilter()"
+                >
+                    ✕
+                </button>
+            </div>
             <label for="order">Order</label>
             <select id="order" onchange="load()">
                 <option value="desc" selected>Newest first</option>
@@ -270,9 +335,13 @@
                 <input type="checkbox" id="hide-watched" onchange="load()" />
                 Hide watched
             </label>
+            <button class="clear-btn" onclick="clearAll()">✕ Clear</button>
         </div>
 
-        <div id="list" class="loading">Loading episodes...</div>
+        <div class="card">
+            <h2>Recently Aired Episodes <span id="episode-count"></span></h2>
+            <div id="list" class="loading">Loading episodes...</div>
+        </div>
     </main>
 
     <footer>
@@ -312,6 +381,8 @@
             load();
         }
 
+        var allEpisodes = [];
+
         async function load() {
             var el = document.getElementById('list');
             var order = document.getElementById('order').value;
@@ -323,39 +394,72 @@
                 var resp = await fetch('/api/episodes/recent?limit=' + limit + '&order=' + order + '&exclude_watched=' + excludeWatched);
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 var data = await resp.json();
-                var eps = data.episodes || [];
-                if (!eps.length) {
-                    el.className = '';
-                    el.innerHTML = '<p class="loading">No episodes found.</p>';
-                    return;
-                }
-                el.className = '';
-                el.innerHTML = '<div class="card">' + eps.map(function (ep) {
-                    var link = '/show/' + ep.show_id + '?episode=' + ep.id + '&season=' + ep.season_number;
-                    var thumbSrc = ep.episode_image || ep.show_poster;
-                    var isEpisode = !!ep.episode_image;
-                    return '<div class="episode-row">' +
-                        (thumbSrc
-                            ? '<img class="thumb' + (isEpisode ? ' episode' : '') + '" src="' + thumbSrc + '" onerror="this.style.display=\'none\'">'
-                            : '<div class="thumb"></div>') +
-                        '<div class="episode-main">' +
-                            '<div class="show-title"><a href="' + link + '">' + escapeHtml(ep.show_title || 'Unknown show') + '</a>' +
-                            (ep.show_hidden
-                                ? ' <span class="hidden-badge" title="This show is hidden from the main listings">👁 hidden</span>' +
-                                  ' <button class="unhide-btn" onclick="unhideShow(' + ep.show_id + ')">unhide</button>'
-                                : '') +
-                            '</div>' +
-                            '<div class="ep-title">S' + pad(ep.season_number) + 'E' + pad(ep.episode_number) + ' - ' + escapeHtml(ep.title || 'Episode ' + ep.episode_number) + (ep.runtime ? ' (' + ep.runtime + 'm)' : '') + '</div>' +
-                            '<div class="episode-meta">' + (ep.air_date ? formatDateLong(ep.air_date) : '') + '</div>' +
-                        '</div>' +
-                        infoIcon(ep.overview) +
-                        '<span class="badge ' + (ep.watched ? 'badge-watched' : 'badge-unwatched') + '">' + (ep.watched ? '✓ watched' : 'unwatched') + '</span>' +
-                    '</div>';
-                }).join('') + '</div>';
+                allEpisodes = data.episodes || [];
+                renderList();
             } catch (e) {
+                allEpisodes = [];
                 el.className = '';
                 el.innerHTML = '<p class="error">Failed: ' + escapeHtml(e.message) + '</p>';
             }
+        }
+
+        function clearFilter() {
+            document.getElementById('filter').value = '';
+            renderList();
+        }
+
+        function clearAll() {
+            document.getElementById('filter').value = '';
+            document.getElementById('order').value = 'desc';
+            document.getElementById('limit').value = '50';
+            document.getElementById('hide-watched').checked = false;
+            load();
+        }
+
+        function renderList() {
+            var el = document.getElementById('list');
+            var filter = document.getElementById('filter').value.toLowerCase().trim();
+            document.getElementById('filter-clear').style.display = filter ? 'inline-block' : 'none';
+
+            var eps = allEpisodes;
+            if (filter) {
+                eps = eps.filter(function (ep) {
+                    var hay = (ep.show_title || '') + ' ' + (ep.title || '') + ' S' + pad(ep.season_number) + 'E' + pad(ep.episode_number);
+                    return hay.toLowerCase().indexOf(filter) !== -1;
+                });
+            }
+
+            document.getElementById('episode-count').textContent = '(' + eps.length + ')';
+
+            if (!eps.length) {
+                el.className = '';
+                el.innerHTML = '<p class="loading">No episodes match.</p>';
+                return;
+            }
+
+            el.className = '';
+            el.innerHTML = eps.map(function (ep) {
+                var link = '/show/' + ep.show_id + '?episode=' + ep.id + '&season=' + ep.season_number;
+                var thumbSrc = ep.episode_image || ep.show_poster;
+                var isEpisode = !!ep.episode_image;
+                return '<div class="episode-row">' +
+                    (thumbSrc
+                        ? '<img class="thumb' + (isEpisode ? ' episode' : '') + '" src="' + thumbSrc + '" onerror="this.style.display=\'none\'">'
+                        : '<div class="thumb"></div>') +
+                    '<div class="episode-main">' +
+                        '<div class="show-title"><a href="' + link + '">' + escapeHtml(ep.show_title || 'Unknown show') + '</a>' +
+                        (ep.show_hidden
+                            ? ' <span class="hidden-badge" title="This show is hidden from the main listings">👁 hidden</span>' +
+                              ' <button class="unhide-btn" onclick="unhideShow(' + ep.show_id + ')">unhide</button>'
+                            : '') +
+                        '</div>' +
+                        '<div class="ep-title">S' + pad(ep.season_number) + 'E' + pad(ep.episode_number) + ' - ' + escapeHtml(ep.title || 'Episode ' + ep.episode_number) + (ep.runtime ? ' (' + ep.runtime + 'm)' : '') + '</div>' +
+                        '<div class="episode-meta">' + (ep.air_date ? formatDateLong(ep.air_date) : '') + '</div>' +
+                    '</div>' +
+                    infoIcon(ep.overview) +
+                    '<span class="badge ' + (ep.watched ? 'badge-watched' : 'badge-unwatched') + '">' + (ep.watched ? '✓ watched' : 'unwatched') + '</span>' +
+                '</div>';
+            }).join('');
         }
 
         load();

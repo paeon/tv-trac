@@ -1044,8 +1044,8 @@
                     filtered = filtered.filter(function (s) {
                         return s.watchlist === true;
                     });
-                else
-                    // Default: exclude hidden
+                else if (!showSearch)
+                    // Default: exclude hidden, unless searching (then surface them)
                     filtered = filtered.filter(function (s) {
                         return s.hidden !== true;
                     });
@@ -1187,6 +1187,9 @@
                             (s.watchlist
                                 ? ' <span style="background:#f1c40f;color:#000;font-size:0.6rem;padding:0 0.3rem;border-radius:3px;font-weight:bold;vertical-align:middle;" title="On Watchlist">WL</span>'
                                 : "") +
+                            (s.hidden
+                                ? ' <span style="background:#e0e4e8;color:#5b6472;font-size:0.6rem;padding:0 0.3rem;border-radius:3px;font-weight:bold;vertical-align:middle;" title="Hidden from listings">hidden</span>'
+                                : "") +
                             (s.first_aired
                                 ? ' <span style="color:var(--text-muted);font-size:0.8rem;">' +
                                   formatDateLong(s.first_aired) +
@@ -1249,6 +1252,9 @@
                             escapeHtml(s.title) +
                             (s.watchlist
                                 ? ' <span style="background:#f1c40f;color:#000;font-size:0.6rem;padding:0 0.3rem;border-radius:3px;font-weight:bold;vertical-align:middle;" title="On Watchlist">WL</span>'
+                                : "") +
+                            (s.hidden
+                                ? ' <span style="background:#e0e4e8;color:#5b6472;font-size:0.6rem;padding:0 0.3rem;border-radius:3px;font-weight:bold;vertical-align:middle;" title="Hidden from listings">hidden</span>'
                                 : "") +
                             "</div>" +
                             '<span class="badge ' +

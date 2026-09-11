@@ -69,6 +69,7 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
     poster: str | None = None
     first_aired: str | None = None
     runtime: int | None = None
+    imdb_id: str | None = None
 
     # Try TMDB search
     try:
@@ -82,6 +83,7 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
             if pp:
                 poster = IMAGE_BASE + pp
             first_aired = details.get("release_date")
+            imdb_id = details.get("imdb_id")
             # Use .nfo title if available
             if sm.nfo_title:
                 sm.title = sm.nfo_title
@@ -101,6 +103,7 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
                     details = await tmdb.get_movie(tmdb_id)
                     overview = overview or details.get("overview")
                     runtime = details.get("runtime")
+                    imdb_id = details.get("imdb_id")
                     if not poster:
                         pp = details.get("poster_path")
                         if pp:
@@ -124,6 +127,7 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
             overview=overview,
             first_aired=first_aired,
             runtime=runtime,
+            imdb_id=imdb_id,
             file_path=sm.file_path,
         )
         db.add(movie)
@@ -139,6 +143,8 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
             movie.first_aired = first_aired
         if runtime and not movie.runtime:
             movie.runtime = runtime
+        if imdb_id and not movie.imdb_id:
+            movie.imdb_id = imdb_id
         if not movie.file_path and sm.file_path:
             movie.file_path = sm.file_path
 
