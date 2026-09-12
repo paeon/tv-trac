@@ -1,9 +1,0 @@
-I would like you to reccommend the best approach and languages to use in a fairly simple application that will eventually run in a docker container and can::
-
-A: Track tv programs so that shows, seasons and episodes can be selected as watched and if not all episodes watched a part watched flag on the show and season
-
-B: This program needs to be able to scan an existing local folder structure for availabble show, seasons and episodes data
-
-C: Access TheTvdb api with key to download any data missing from the local directories
-
-D: After the basic structure is made then add extra details as requested
