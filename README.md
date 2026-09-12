@@ -19,6 +19,7 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 - [Data & storage](#data--storage)
 - [Backup & restore](#backup--restore)
 - [Updating](#updating)
+- [Logging](#logging)
 - [API endpoints](#api-endpoints)
 - [Tech stack](#tech-stack)
 - [Attribution & license](#attribution--license)
@@ -135,6 +136,7 @@ All settings are read from the `.env` file. Values marked **"set by compose"** a
 | `IMAGE_DIR` | No | `./data/images` | Local artwork cache directory |
 | `APP_HOST` | No | `0.0.0.0` | Bind address |
 | `APP_PORT` | No | `8000` | Bind port |
+| `LOG_LEVEL` | No | `INFO` | Log verbosity: `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 
 > **Note:** `MEDIA_HOST_TV_PATH` and `MEDIA_HOST_MOVIES_PATH` are used only by Docker Compose for the volume mounts. Inside the container the media is always at `/media/tv` and `/media/movies` (see `MEDIA_ROOT` / `MEDIA_ROOT_MOVIES`).
 
@@ -179,6 +181,9 @@ IMAGE_DIR=./data/images
 # Application settings
 APP_HOST=0.0.0.0
 APP_PORT=8000
+
+# Logging verbosity (DEBUG, INFO, WARNING, ERROR)
+LOG_LEVEL=INFO
 ```
 
 ---
@@ -288,6 +293,18 @@ docker compose down
 rm -rf data/
 docker compose up -d --build
 # then scan from the UI
+```
+
+---
+
+## Logging
+
+Logs go to the container's stdout/stderr — view them with `docker compose logs -f tvtrac`.
+
+The default level (`INFO`) shows scan progress and any warnings/errors, including connection failures, timeouts, and HTTP 4xx/5xx responses (e.g. API rate-limiting/`429`). For full detail — every API request and rate-limit throttling — set `LOG_LEVEL=DEBUG` in `.env` and restart.
+
+```bash
+docker compose logs -f tvtrac
 ```
 
 ---

@@ -27,6 +27,7 @@ async def sync_movies(db: AsyncSession) -> dict[str, Any]:
 
     results = []
     for sm in scanned:
+        logger.info("Syncing movie %r", sm.title)
         try:
             r = await _sync_one_movie(db, sm)
             results.append(r)

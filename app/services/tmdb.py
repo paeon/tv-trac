@@ -28,10 +28,13 @@ class TMDBClient:
         self._min_interval = 0.25  # ~4 req/sec, safely under TMDB's rate limit
 
     async def _rate_limit(self) -> None:
+        """Throttle requests to stay under the API rate limit."""
         now = time.monotonic()
         elapsed = now - self._last_request
         if elapsed < self._min_interval:
-            await asyncio.sleep(self._min_interval - elapsed)
+            sleep_for = self._min_interval - elapsed
+            logger.debug("TMDB rate limit: sleeping %.3fs", sleep_for)
+            await asyncio.sleep(sleep_for)
         self._last_request = time.monotonic()
 
     async def _get_client(self) -> httpx.AsyncClient:
@@ -48,26 +51,49 @@ class TMDBClient:
             p.update(extra)
         return p
 
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Perform an API request with rate limiting and detailed logging."""
+        await self._rate_limit()
+        client = await self._get_client()
+        logger.debug("TMDB %s %s", method, path)
+        try:
+            resp = await client.request(method, path, params=self._params(params))
+        except httpx.TimeoutException as exc:
+            logger.error("TMDB timeout on %s %s: %s", method, path, exc)
+            raise
+        except httpx.HTTPError as exc:
+            logger.error("TMDB connection error on %s %s: %s", method, path, exc)
+            raise
+        if resp.status_code >= 400:
+            logger.warning(
+                "TMDB HTTP %d on %s %s: %s",
+                resp.status_code,
+                method,
+                path,
+                resp.text[:200],
+            )
+        resp.raise_for_status()
+        return resp.json()
+
     async def search_movie(
         self, query: str, year: str | None = None
     ) -> list[dict[str, Any]]:
         """Search TMDB for a movie."""
-        await self._rate_limit()
-        client = await self._get_client()
         params: dict[str, Any] = {"query": query}
         if year:
             params["year"] = year
-        resp = await client.get("/search/movie", params=self._params(params))
-        resp.raise_for_status()
-        return resp.json().get("results", [])
+        data = await self._request("GET", "/search/movie", params=params)
+        return data.get("results", [])
 
     async def get_movie(self, tmdb_id: int) -> dict[str, Any]:
         """Get full movie details."""
-        await self._rate_limit()
-        client = await self._get_client()
-        resp = await client.get(f"/movie/{tmdb_id}", params=self._params())
-        resp.raise_for_status()
-        return resp.json()
+        return await self._request("GET", f"/movie/{tmdb_id}")
 
     async def close(self) -> None:
         if self._client:
@@ -75,4 +101,5 @@ class TMDBClient:
             self._client = None
 
 
+# Singleton convenience
 tmdb = TMDBClient()

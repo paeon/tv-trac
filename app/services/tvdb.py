@@ -35,7 +35,9 @@ class TVDBClient:
         now = time.monotonic()
         elapsed = now - self._last_request
         if elapsed < self._min_interval:
-            await asyncio.sleep(self._min_interval - elapsed)
+            sleep_for = self._min_interval - elapsed
+            logger.debug("TheTVDB rate limit: sleeping %.3fs", sleep_for)
+            await asyncio.sleep(sleep_for)
         self._last_request = time.monotonic()
 
     async def _get_client(self) -> httpx.AsyncClient:
@@ -53,7 +55,16 @@ class TVDBClient:
         body: dict[str, str] = {"apikey": settings.tvdb_api_key}
         if settings.tvdb_pin:
             body["pin"] = settings.tvdb_pin
-        resp = await client.post("/login", json=body)
+        logger.debug("TheTVDB POST /login")
+        try:
+            resp = await client.post("/login", json=body)
+        except httpx.HTTPError as exc:
+            logger.error("TheTVDB login connection error: %s", exc)
+            raise
+        if resp.status_code >= 400:
+            logger.warning(
+                "TheTVDB login HTTP %d: %s", resp.status_code, resp.text[:200]
+            )
         resp.raise_for_status()
         data = resp.json()
         self._token = data["data"]["token"]
@@ -64,73 +75,89 @@ class TVDBClient:
             await self.authenticate()
         return {"Authorization": f"Bearer {self._token}"}
 
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Perform an API request with rate limiting and detailed logging."""
+        await self._rate_limit()
+        client = await self._get_client()
+        logger.debug("TheTVDB %s %s", method, path)
+        try:
+            resp = await client.request(
+                method,
+                path,
+                params=params,
+                json=json,
+                headers=await self._headers(),
+            )
+        except httpx.TimeoutException as exc:
+            logger.error("TheTVDB timeout on %s %s: %s", method, path, exc)
+            raise
+        except httpx.HTTPError as exc:
+            logger.error("TheTVDB connection error on %s %s: %s", method, path, exc)
+            raise
+        if resp.status_code >= 400:
+            logger.warning(
+                "TheTVDB HTTP %d on %s %s: %s",
+                resp.status_code,
+                method,
+                path,
+                resp.text[:200],
+            )
+        resp.raise_for_status()
+        return resp.json()
+
     # ── Shows ────────────────────────────────────────────────────────────────
 
     async def search_show(self, name: str) -> list[dict[str, Any]]:
         """Search for a show by name. Returns list of matching shows."""
-        await self._rate_limit()
-        client = await self._get_client()
-        resp = await client.get(
-            "/search",
-            params={"query": name, "type": "series"},
-            headers=await self._headers(),
+        data = await self._request(
+            "GET", "/search", params={"query": name, "type": "series"}
         )
-        resp.raise_for_status()
-        return resp.json()["data"]  # list of series search results
+        return data["data"]
 
     async def search_movie(self, name: str) -> list[dict[str, Any]]:
         """Search for a movie by name."""
-        await self._rate_limit()
-        client = await self._get_client()
-        resp = await client.get(
-            "/search",
-            params={"query": name, "type": "movie"},
-            headers=await self._headers(),
+        data = await self._request(
+            "GET", "/search", params={"query": name, "type": "movie"}
         )
-        resp.raise_for_status()
-        return resp.json()["data"]
+        return data["data"]
 
     async def get_show(self, tvdb_id: int) -> dict[str, Any]:
         """Get full show record by TVDB ID."""
-        await self._rate_limit()
-        client = await self._get_client()
-        resp = await client.get(f"/series/{tvdb_id}", headers=await self._headers())
-        resp.raise_for_status()
-        return resp.json()["data"]
+        data = await self._request("GET", f"/series/{tvdb_id}")
+        return data["data"]
 
     async def get_show_extended(self, tvdb_id: int) -> dict[str, Any]:
         """Get extended show record (includes seasons + episodes)."""
-        await self._rate_limit()
-        client = await self._get_client()
-        resp = await client.get(
-            f"/series/{tvdb_id}/extended", headers=await self._headers()
-        )
-        resp.raise_for_status()
-        return resp.json()["data"]
+        data = await self._request("GET", f"/series/{tvdb_id}/extended")
+        return data["data"]
 
     async def get_movie_extended(self, tvdb_id: int) -> dict[str, Any]:
         """Get extended movie record."""
-        await self._rate_limit()
-        client = await self._get_client()
-        resp = await client.get(
-            f"/movies/{tvdb_id}/extended", headers=await self._headers()
-        )
-        resp.raise_for_status()
-        return resp.json()["data"]
+        data = await self._request("GET", f"/movies/{tvdb_id}/extended")
+        return data["data"]
 
     # ── Seasons ──────────────────────────────────────────────────────────────
 
     async def get_seasons(self, tvdb_id: int, page: int = 0) -> list[dict[str, Any]]:
         """Get all season type records for a series."""
-        await self._rate_limit()
-        client = await self._get_client()
-        resp = await client.get(
-            f"/series/{tvdb_id}/episodes/default?page={page}",
-            params={"season": 0},  # season=0 returns all seasons' episodes
-            headers=await self._headers(),
+        data = await self._request(
+            "GET",
+            f"/series/{tvdb_id}/episodes/default",
+            params={"page": page, "season": 0},  # season=0 returns all seasons' episodes
         )
-        resp.raise_for_status()
-        return resp.json()["data"]
+        return data["data"]
+
+    async def get_season_extended(self, season_id: int) -> dict[str, Any]:
+        """Get extended season record (includes episodes with full details)."""
+        data = await self._request("GET", f"/seasons/{season_id}/extended")
+        return data["data"]
 
     # ── Episodes ─────────────────────────────────────────────────────────────
 
@@ -138,34 +165,14 @@ class TVDBClient:
         self, series_id: int, season_type: str = "default", page: int = 0
     ) -> dict[str, Any]:
         """Get episodes for a series filtered by season type."""
-        await self._rate_limit()
-        client = await self._get_client()
-        resp = await client.get(
-            f"/series/{series_id}/episodes/{season_type}/{page}",
-            headers=await self._headers(),
+        return await self._request(
+            "GET", f"/series/{series_id}/episodes/{season_type}/{page}"
         )
-        resp.raise_for_status()
-        return resp.json()
-
-    async def get_season_extended(self, season_id: int) -> dict[str, Any]:
-        """Get extended season record (includes episodes with full details)."""
-        await self._rate_limit()
-        client = await self._get_client()
-        resp = await client.get(
-            f"/seasons/{season_id}/extended", headers=await self._headers()
-        )
-        resp.raise_for_status()
-        return resp.json()["data"]
 
     async def get_episode_extended(self, episode_id: int) -> dict[str, Any]:
         """Get extended episode record with full details."""
-        await self._rate_limit()
-        client = await self._get_client()
-        resp = await client.get(
-            f"/episodes/{episode_id}/extended", headers=await self._headers()
-        )
-        resp.raise_for_status()
-        return resp.json()["data"]
+        data = await self._request("GET", f"/episodes/{episode_id}/extended")
+        return data["data"]
 
     async def close(self) -> None:
         if self._client:

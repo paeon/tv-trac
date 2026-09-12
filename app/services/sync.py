@@ -72,6 +72,7 @@ async def sync_shows(db: AsyncSession) -> dict[str, Any]:
 
     results = []
     for title, scanned_show in sorted(scanned.items()):
+        logger.info("Syncing show %r", title)
         try:
             show_result = await _sync_one_show(db, title, scanned_show, tvdb_available)
             results.append(show_result)

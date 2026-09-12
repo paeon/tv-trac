@@ -16,7 +16,7 @@ from app.models.movie import Movie  # noqa: F401 — register model
 from app.routers import episodes, movies, scan, shows, tvdb
 from app.services.images import IMAGE_DIR
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
 logger = logging.getLogger(__name__)
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
