@@ -344,7 +344,13 @@
                         '<h2>'+escapeHtml(show.title)+' <span class="year">('+ (show.first_aired ? show.first_aired.substring(0,4) : '') +')</span></h2>' +
                         '<span class="badge '+watchBadgeClass(show.part_watched)+'">'+watchBadgeLabel(show.part_watched)+'</span>' +
                         (show.ended ? ' <span class="badge" style="background:#e0e4e8;color:#5b6472;font-size:0.7rem;" title="Marked as ended — no more seasons/episodes">ended</span>' : '') +
-                        (show.first_aired ? '<div class="meta">First aired: '+formatDateLong(show.first_aired)+'</div>' : '') +
+                        ((show.first_aired || show.created_at)
+                            ? '<div class="meta">' +
+                                (show.first_aired ? 'First aired: ' + formatDateLong(show.first_aired) : '') +
+                                (show.first_aired && show.created_at ? ' &nbsp;·&nbsp; ' : '') +
+                                (show.created_at ? 'Date added: ' + formatDateLong(show.created_at.substring(0, 10)) : '') +
+                              '</div>'
+                            : '') +
                         '<div class="meta" style="display:flex;gap:0.5rem;flex-wrap:wrap;">' +
                             (show.tvdb_slug ? '<a class="ext-link" href="https://thetvdb.com/series/'+show.tvdb_slug+'" target="_blank">TheTVDB ↗</a>' : '') +
                             (show.imdb_id ? '<a class="ext-link" href="https://www.imdb.com/title/'+show.imdb_id+'/" target="_blank">IMDb ↗</a>' : '<span class="ext-link" onclick="editImdb(event)" style="cursor:pointer;">Add IMDb ID</span>') +

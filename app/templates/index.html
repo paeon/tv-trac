@@ -1118,6 +1118,9 @@
                     return s.hidden !== true;
                 }).length;
                 var hiddenShows = totalShows - visibleShows;
+                var endedShows = allShows.filter(function (s) {
+                    return s.ended === true;
+                }).length;
 
                 // Search-matched subset (before status/hidden filtering)
                 var searchMatches = allShows;
@@ -1130,6 +1133,9 @@
                     return s.hidden !== true;
                 }).length;
                 var searchHidden = searchMatches.length - searchVisible;
+                var searchEnded = searchMatches.filter(function (s) {
+                    return s.ended === true;
+                }).length;
 
                 var sort = document.getElementById("shows-sort").value;
                 if (sort === "recent")
@@ -1163,7 +1169,10 @@
                         searchVisible +
                         " · " +
                         "Hidden: " +
-                        searchHidden;
+                        searchHidden +
+                        " · " +
+                        "Ended: " +
+                        searchEnded;
                 } else {
                     document.getElementById("show-count").innerHTML =
                         "Total: <strong>" +
@@ -1173,7 +1182,10 @@
                         visibleShows +
                         " · " +
                         "Hidden: " +
-                        hiddenShows;
+                        hiddenShows +
+                        " · " +
+                        "Ended: " +
+                        endedShows;
                 }
                 // Paginate
                 showCurrentPage = Math.min(
@@ -1264,6 +1276,11 @@
                                   formatDateLong(s.first_aired) +
                                   "</span>"
                                 : "") +
+                            (s.created_at
+                                ? ' <span style="color:var(--text-muted);font-size:0.75rem;">· added ' +
+                                  formatDateLong(s.created_at.substring(0, 10)) +
+                                  "</span>"
+                                : "") +
                             infoIcon(s.overview) +
                             '<span class="notes-icon' +
                             (s.notes ? " has-notes" : "") +
@@ -1335,6 +1352,9 @@
                                 ? '<span style="color:#f1c40f;font-size:0.7rem;margin-left:0.4rem;">' +
                                   "★".repeat(s.rating) +
                                   "</span>"
+                                : "") +
+                            (s.created_at
+                                ? '<div style="white-space:nowrap;color:var(--text-muted);font-size:0.6rem;margin-top:0.15rem;">added ' + formatDateLong(s.created_at.substring(0, 10)) + '</div>'
                                 : "") +
                             '<div style="margin-top:0.2rem;">' +
                             showStatsHtml(s, true) +
@@ -1937,7 +1957,11 @@
 
             // ── CHECK MISSING ────────────────────────────────────────────────
             async function checkMissing() {
+                // Force list view so the results render correctly (grid layout breaks them)
+                showViewMode = "list";
+                document.getElementById("show-view-toggle").textContent = "▦ Grid";
                 var el = document.getElementById("shows-list");
+                el.className = "";
                 el.innerHTML =
                     '<p class="loading">Checking TheTVDB for missing episodes...</p>';
                 try {
