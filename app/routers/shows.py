@@ -33,13 +33,27 @@ async def list_shows(
     include_hidden: bool = False,
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(Show).order_by(Show.title)
+    query = (
+        select(Show)
+        .options(selectinload(Show.seasons).selectinload(Season.episodes))
+        .order_by(Show.title)
+    )
     if not include_deleted:
         query = query.where(Show.deleted == False)  # noqa: E712
     if not include_hidden:
         query = query.where(Show.hidden == False)  # noqa: E712
     result = await db.execute(query)
-    return result.scalars().all()
+    shows = result.scalars().all()
+    for show in shows:
+        seasons = show.seasons
+        episodes = [ep for season in seasons for ep in season.episodes]
+        show.season_count = len(seasons)
+        show.watched_season_count = sum(
+            1 for s in seasons if s.part_watched == "watched"
+        )
+        show.episode_count = len(episodes)
+        show.watched_episode_count = sum(1 for ep in episodes if ep.watched)
+    return shows
 
 
 @router.get("/{show_id}", response_model=ShowOutNested)

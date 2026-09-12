@@ -77,6 +77,7 @@ class ShowOut(BaseModel):
     imdb_id: str | None
     missing_count: int
     missing_details: str | None
+    missing_season_count: int
     hidden: bool
     watchlist: bool
     rating: int
@@ -84,6 +85,11 @@ class ShowOut(BaseModel):
     deleted: bool
     created_at: datetime
     updated_at: datetime
+    # Computed aggregates (populated by the list endpoint)
+    season_count: int = 0
+    watched_season_count: int = 0
+    episode_count: int = 0
+    watched_episode_count: int = 0
 
 
 class ShowOutNested(ShowOut):

@@ -18,6 +18,7 @@
                 --text: #1a1a2e;
                 --text-muted: #6b7280;
                 --border: #e0e4e8;
+                --content-max-width: 960px;
             }
             * {
                 box-sizing: border-box;
@@ -63,7 +64,7 @@
                 border-bottom-color: var(--accent);
             }
             main {
-                max-width: 960px;
+                max-width: var(--content-max-width);
                 margin: 2rem auto;
                 padding: 0 1rem;
             }
@@ -391,7 +392,7 @@
                     Track your TV shows &amp; movies
                 </p>
             </div>
-            <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem">
                 <span
                     id="media-label"
                     style="color: var(--text-muted); font-size: 0.85rem"
@@ -402,25 +403,71 @@
                     onclick="TVTracI18n.openPicker(this, onLocaleSelect, event)"
                     title="Change date/time format"
                     style="
-                        margin-left: 0.75rem;
-                        background: none;
+                        background: transparent;
                         border: none;
-                        font-size: 1.3rem;
+                        height: 2.1rem;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 0 0.5rem;
+                        font-size: 1rem;
                         cursor: pointer;
                         line-height: 1;
-                        vertical-align: middle;
                     "
                 >🏳️</button>
-                <button onclick="scanMedia()" style="margin-left: 1rem">
+                <button
+                    id="width-toggle"
+                    onclick="TVTracWidth.cycle(this)"
+                    title="Width: 960px"
+                    style="
+                        background: #e0e4e8;
+                        border: none;
+                        color: var(--text);
+                        height: 2.1rem;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 0 0.8rem;
+                        border-radius: 6px;
+                        font-size: 0.85rem;
+                        cursor: pointer;
+                        line-height: 1;
+                    "
+                >← 960px →</button>
+                <button
+                    onclick="scanMedia()"
+                    style="
+                        background: var(--accent);
+                        color: #fff;
+                        border: none;
+                        height: 2.1rem;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 0 0.8rem;
+                        border-radius: 6px;
+                        font-size: 0.85rem;
+                        cursor: pointer;
+                        line-height: 1;
+                    "
+                >
                     🔍 Scan
                 </button>
                 <button
                     onclick="checkMissing()"
                     style="
-                        margin-left: 0.5rem;
                         background: var(--surface);
                         color: var(--text);
                         border: 1px solid var(--border);
+                        height: 2.1rem;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 0 0.8rem;
+                        border-radius: 6px;
+                        font-size: 0.85rem;
+                        cursor: pointer;
+                        line-height: 1;
                     "
                 >
                     ⚠️ Check Missing
@@ -1139,6 +1186,36 @@
                 );
                 saveShowState();
             }
+            function showStatsHtml(s, compact) {
+                var size = compact ? "0.65" : "0.75";
+                var html =
+                    '<span style="color:var(--text-muted);font-size:' +
+                    size +
+                    'rem;">📺 ' +
+                    s.season_count +
+                    " seasons · " +
+                    s.watched_season_count +
+                    " watched";
+                if (s.missing_season_count > 0)
+                    html +=
+                        ' · <span style="color:var(--accent);">' +
+                        s.missing_season_count +
+                        " missing</span>";
+                html +=
+                    " &nbsp;•&nbsp; 🎞 " +
+                    s.episode_count +
+                    " eps · " +
+                    s.watched_episode_count +
+                    " watched";
+                if (s.missing_count > 0)
+                    html +=
+                        ' · <span style="color:var(--accent);" title="' +
+                        escapeHtml(s.missing_details || "") +
+                        '">' +
+                        s.missing_count +
+                        " missing</span>";
+                return html + "</span>";
+            }
             function renderShowList(shows) {
                 return shows
                     .map(function (s) {
@@ -1201,14 +1278,11 @@
                                   s.tvdb_slug +
                                   '" target="_blank" onclick="event.stopPropagation()" title="View on TheTVDB">↗</a>'
                                 : "") +
-                            (s.missing_count > 0
-                                ? '<span style="color:var(--accent);font-size:0.7rem;margin-left:0.5rem;" title="' +
-                                  escapeHtml(s.missing_details || "") +
-                                  '">⚠ ' +
-                                  s.missing_count +
-                                  " missing</span>"
-                                : "") +
-                            "</div></div>" +
+                            "</div>" +
+                            '<div style="margin-top:0.15rem;">' +
+                            showStatsHtml(s, false) +
+                            "</div>" +
+                            "</div>" +
                             '<div class="show-detail" style="display:none;margin-top:0.75rem"></div></div>'
                         );
                     })
@@ -1246,13 +1320,9 @@
                                   "★".repeat(s.rating) +
                                   "</span>"
                                 : "") +
-                            (s.missing_count > 0
-                                ? '<div style="color:var(--accent);font-size:0.65rem;margin-top:0.2rem;" title="' +
-                                  escapeHtml(s.missing_details || "") +
-                                  '">⚠ ' +
-                                  s.missing_count +
-                                  " missing</div>"
-                                : "") +
+                            '<div style="margin-top:0.2rem;">' +
+                            showStatsHtml(s, true) +
+                            "</div>" +
                             "</div>"
                         );
                     })

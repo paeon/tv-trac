@@ -18,6 +18,7 @@
                 --text: #1a1a2e;
                 --text-muted: #6b7280;
                 --border: #e0e4e8;
+                --content-max-width: 960px;
             }
             * {
                 box-sizing: border-box;
@@ -53,7 +54,7 @@
                 color: var(--accent);
             }
             main {
-                max-width: 900px;
+                max-width: var(--content-max-width);
                 margin: 2rem auto;
                 padding: 0 1rem;
             }
@@ -235,8 +236,14 @@
                     id="locale-toggle"
                     onclick="TVTracI18n.openPicker(this, onLocaleSelect, event)"
                     title="Change date/time format"
-                    style="background:none;border:none;font-size:1.3rem;cursor:pointer;line-height:1;"
+                    style="background:transparent;border:none;height:2rem;display:inline-flex;align-items:center;justify-content:center;padding:0 0.5rem;font-size:1rem;cursor:pointer;line-height:1;"
                 >🏳️</button>
+                <button
+                    id="width-toggle"
+                    onclick="TVTracWidth.cycle(this)"
+                    title="Width: 960px"
+                    style="background:#e0e4e8;border:none;color:var(--text);height:2rem;display:inline-flex;align-items:center;justify-content:center;padding:0 0.8rem;border-radius:6px;font-size:0.85rem;cursor:pointer;line-height:1;"
+                >← 960px →</button>
                 <a href="/">← Back to shows</a>
             </div>
         </header>

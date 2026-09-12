@@ -41,6 +41,7 @@ async def check_missing(db: AsyncSession, store: bool = False) -> dict[str, Any]
             if store:
                 show.missing_count = 0
                 show.missing_details = None
+                show.missing_season_count = 0
             report.append(
                 {
                     "title": show.title,
@@ -58,6 +59,7 @@ async def check_missing(db: AsyncSession, store: bool = False) -> dict[str, Any]
                 show.missing_details = (
                     r.get("message") if r.get("missing_count", 0) > 0 else None
                 )
+                show.missing_season_count = r.get("missing_season_count", 0)
         except Exception as exc:
             logger.exception("Failed to check %r: %s", show.title, exc)
             report.append(
@@ -103,6 +105,7 @@ async def _check_one_show(db: AsyncSession, show: Show) -> dict[str, Any]:
 
     missing_details = []
     total_missing = 0
+    missing_season_count = 0
 
     # For each TVDB season (skip season 0 = specials)
     for season_num in sorted(tvdb_seasons.keys()):
@@ -122,6 +125,8 @@ async def _check_one_show(db: AsyncSession, show: Show) -> dict[str, Any]:
         missing_count = max(0, tvdb_count - local_count)
         if missing_count > 0:
             total_missing += missing_count
+            if local_count == 0:
+                missing_season_count += 1
             missing_details.append(
                 {
                     "season": season_num,
@@ -137,6 +142,7 @@ async def _check_one_show(db: AsyncSession, show: Show) -> dict[str, Any]:
             "status": "ok",
             "message": "All seasons correct",
             "missing_count": 0,
+            "missing_season_count": 0,
         }
 
     return {
@@ -145,6 +151,7 @@ async def _check_one_show(db: AsyncSession, show: Show) -> dict[str, Any]:
         "message": _format_message(missing_details, total_missing),
         "missing": missing_details,
         "missing_count": total_missing,
+        "missing_season_count": missing_season_count,
     }
 
 

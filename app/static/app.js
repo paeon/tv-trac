@@ -215,4 +215,97 @@
         currentLabel: currentLabel,
         getLocale: currentLocale,
     };
+
+    // ── Content width toggle ────────────────────────────────────────────
+    var WIDTH_STORAGE_KEY = "tvtrac_content_width";
+    var WIDTH_PRESETS = [
+        { key: "normal", label: "960px", css: "960px" },
+        { key: "wide", label: "1400px", css: "1400px" },
+        { key: "full", label: "100%", css: "100%" },
+    ];
+
+    function widthPreset(key) {
+        for (var i = 0; i < WIDTH_PRESETS.length; i++) {
+            if (WIDTH_PRESETS[i].key === key) return WIDTH_PRESETS[i];
+        }
+        return WIDTH_PRESETS[0];
+    }
+
+    function currentWidth() {
+        return widthPreset(localStorage.getItem(WIDTH_STORAGE_KEY) || "normal");
+    }
+
+    function widthButtonText(preset) {
+        return "← " + preset.label + " →";
+    }
+
+    function applyWidth(preset) {
+        document.documentElement.style.setProperty("--content-max-width", preset.css);
+        localStorage.setItem(WIDTH_STORAGE_KEY, preset.key);
+    }
+
+    function cycleWidth(button) {
+        var cur = currentWidth();
+        var idx = WIDTH_PRESETS.indexOf(cur);
+        var next = WIDTH_PRESETS[(idx + 1) % WIDTH_PRESETS.length];
+        applyWidth(next);
+        if (button) {
+            button.textContent = widthButtonText(next);
+            button.title = "Width: " + next.label;
+        }
+    }
+
+    function initWidthButton() {
+        var btn = document.getElementById("width-toggle");
+        if (btn) {
+            var preset = currentWidth();
+            btn.textContent = widthButtonText(preset);
+            btn.title = "Width: " + preset.label;
+        }
+    }
+
+    window.TVTracWidth = { cycle: cycleWidth };
+
+    // Apply the persisted width immediately, before the body renders.
+    applyWidth(currentWidth());
+
+    // ── Back to top button ──────────────────────────────────────────────
+    function initBackToTop() {
+        if (document.getElementById("back-to-top")) return;
+
+        var style = document.createElement("style");
+        style.textContent =
+            "#back-to-top{position:fixed;right:1.25rem;bottom:1.25rem;z-index:1500;width:2.5rem;height:2.5rem;border-radius:50%;border:1px solid var(--border,#e0e4e8);background:var(--surface,#fff);color:var(--text,#1a1a2e);font-size:1.1rem;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity 0.2s,visibility 0.2s;}" +
+            "#back-to-top.show{opacity:1;visibility:visible;}" +
+            "#back-to-top:hover{border-color:var(--accent,#e94560);color:var(--accent,#e94560);}";
+        document.head.appendChild(style);
+
+        var btn = document.createElement("button");
+        btn.id = "back-to-top";
+        btn.type = "button";
+        btn.title = "Back to top";
+        btn.textContent = "▲";
+        btn.addEventListener("click", function () {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        document.body.appendChild(btn);
+
+        function onScroll() {
+            if (window.scrollY > 400) btn.classList.add("show");
+            else btn.classList.remove("show");
+        }
+        window.addEventListener("scroll", onScroll, { passive: true });
+        onScroll();
+    }
+
+    function initChrome() {
+        initBackToTop();
+        initWidthButton();
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initChrome);
+    } else {
+        initChrome();
+    }
 })();
