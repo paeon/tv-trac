@@ -69,10 +69,13 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 - **Sorting** — A–Z, Z–A, Recently Added, First Aired (newest/oldest), Rating (high/low).
 - **Pagination** — 10 / 25 / 50 / 100 items per page.
 - **Recently Aired Episodes** — a dedicated page listing episodes by air date across all shows, with order/limit/filter controls, hidden-show detection, and deep links back to the show/season/episode.
+- **Per-show stats** — each show card shows season counts (available · watched · missing) and episode counts (available · watched · missing) at a glance, with missing highlighted.
 - **Show & movie detail pages** — full metadata, poster, collapsible seasons (expand/collapse all), per-episode watched state, notes, IMDb links, rating, watchlist and hide toggles.
 - **Overview popovers** — click the ⓘ icon to read a show/movie/episode overview without cluttering the screen.
 - **External links** — to TheTVDB (series), TMDB (movie), and IMDb.
 - **Configurable date/time format** — a flag button in the header opens a picker to switch between Default, US, UK, and ISO formats; the choice is remembered in the browser.
+- **Configurable content width** — a header toggle switches the layout width between Normal (960px), Wide (1400px), and Full (100%); remembered in the browser.
+- **Back to top** — a floating button appears when you scroll down and returns you to the top.
 - **Persistent UI state** — filter/search/view selections are remembered in the browser.
 
 ---
@@ -225,6 +228,7 @@ ln -s docker-compose.yml compose.yaml
 - **Check Missing** — the `⚠️ Check Missing` button re-checks TV shows against TheTVDB and flags missing seasons/episodes.
 - **Mark watched** — click an episode/movie watched badge; use the calendar link to set a custom date.
 - **Change date/time format** — click the flag button in the header to switch between Default, US, UK, and ISO formats.
+- **Change content width** — click the `← 960px →` button in the header to cycle between Normal, Wide, and Full widths.
 - **Hide a show/movie** — from its detail page ("Hide from listings"). Hidden items still appear when searching under **All**, labelled `hidden`, and can be unhidden from there or the detail page.
 
 ---
@@ -238,7 +242,7 @@ The data model:
 
 | Table | Key fields |
 |---|---|
-| `shows` | `title`, `tvdb_id`, `tvdb_slug`, `overview`, `poster_path`, `first_aired`, `notes`, `imdb_id`, `missing_count`, `missing_details`, `hidden`, `watchlist`, `rating`, `part_watched`, `deleted`, `created_at`, `updated_at` |
+| `shows` | `title`, `tvdb_id`, `tvdb_slug`, `overview`, `poster_path`, `first_aired`, `notes`, `imdb_id`, `missing_count`, `missing_details`, `missing_season_count`, `hidden`, `watchlist`, `rating`, `part_watched`, `deleted`, `created_at`, `updated_at` |
 | `seasons` | `show_id`, `season_number`, `poster_path`, `part_watched`, `created_at` |
 | `episodes` | `season_id`, `episode_number`, `title`, `overview`, `air_date`, `runtime`, `watched`, `watched_at`, `file_path`, `image_path` |
 | `movies` | `title`, `tmdb_id`, `overview`, `poster_path`, `first_aired`, `runtime`, `notes`, `imdb_id`, `hidden`, `watchlist`, `rating`, `watched`, `watched_at`, `file_path`, `deleted`, `created_at`, `updated_at` |
