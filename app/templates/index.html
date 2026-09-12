@@ -538,6 +538,12 @@
                     >
                         ★ Watchlist
                     </button>
+                    <button
+                        class="filter-btn"
+                        onclick="setShowFilter('ended', this)"
+                    >
+                        ⏹ Ended
+                    </button>
                     <select
                         id="shows-sort"
                         onchange="applyShowFilters()"
@@ -1070,6 +1076,10 @@
                     filtered = filtered.filter(function (s) {
                         return s.watchlist === true;
                     });
+                else if (showFilter === "ended")
+                    filtered = filtered.filter(function (s) {
+                        return s.ended === true;
+                    });
                 else if (!showSearch)
                     // Default: exclude hidden, unless searching (then surface them)
                     filtered = filtered.filter(function (s) {
@@ -1246,6 +1256,9 @@
                             (s.hidden
                                 ? ' <span style="background:#e0e4e8;color:#5b6472;font-size:0.6rem;padding:0 0.3rem;border-radius:3px;font-weight:bold;vertical-align:middle;" title="Hidden from listings">hidden</span>'
                                 : "") +
+                            (s.ended
+                                ? ' <span style="background:#e8edf5;color:#4a5a72;font-size:0.6rem;padding:0 0.3rem;border-radius:3px;font-weight:bold;vertical-align:middle;" title="Marked as ended — no more seasons/episodes">ended</span>'
+                                : "") +
                             (s.first_aired
                                 ? ' <span style="color:var(--text-muted);font-size:0.8rem;">' +
                                   formatDateLong(s.first_aired) +
@@ -1308,6 +1321,9 @@
                                 : "") +
                             (s.hidden
                                 ? ' <span style="background:#e0e4e8;color:#5b6472;font-size:0.6rem;padding:0 0.3rem;border-radius:3px;font-weight:bold;vertical-align:middle;" title="Hidden from listings">hidden</span>'
+                                : "") +
+                            (s.ended
+                                ? ' <span style="background:#e8edf5;color:#4a5a72;font-size:0.6rem;padding:0 0.3rem;border-radius:3px;font-weight:bold;vertical-align:middle;" title="Marked as ended — no more seasons/episodes">ended</span>'
                                 : "") +
                             "</div>" +
                             '<span class="badge ' +
@@ -1993,6 +2009,7 @@
                     unwatched: "○ Unwatched",
                     hidden: "👁 Hidden",
                     watchlist: "★ Watchlist",
+                    ended: "⏹ Ended",
                 };
                 document
                     .querySelectorAll("#page-shows .filter-btn")

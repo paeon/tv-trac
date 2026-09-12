@@ -343,6 +343,7 @@
                     '<div class="show-info">' +
                         '<h2>'+escapeHtml(show.title)+' <span class="year">('+ (show.first_aired ? show.first_aired.substring(0,4) : '') +')</span></h2>' +
                         '<span class="badge '+watchBadgeClass(show.part_watched)+'">'+watchBadgeLabel(show.part_watched)+'</span>' +
+                        (show.ended ? ' <span class="badge" style="background:#e0e4e8;color:#5b6472;font-size:0.7rem;" title="Marked as ended — no more seasons/episodes">ended</span>' : '') +
                         (show.first_aired ? '<div class="meta">First aired: '+formatDateLong(show.first_aired)+'</div>' : '') +
                         '<div class="meta" style="display:flex;gap:0.5rem;flex-wrap:wrap;">' +
                             (show.tvdb_slug ? '<a class="ext-link" href="https://thetvdb.com/series/'+show.tvdb_slug+'" target="_blank">TheTVDB ↗</a>' : '') +
@@ -353,6 +354,7 @@
                         '<div style="margin-top:0.75rem;display:flex;gap:0.5rem;">' +
                             '<button onclick="toggleWatchlist(' + show.id + ',' + (!show.watchlist) + ')" style="'+(show.watchlist?'background:var(--accent);color:#fff;':'background:var(--border);color:var(--text);')+'border:none;padding:0.3rem 0.9rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">'+(show.watchlist?'★ On Watchlist':'☆ Add to Watchlist')+'</button>' +
                             '<button onclick="toggleHidden(' + show.id + ',' + (!show.hidden) + ')" style="background:var(--border);color:var(--text);border:none;padding:0.3rem 0.9rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">'+(show.hidden?'Unhide from listings':'Hide from listings')+'</button>' +
+                            '<button onclick="toggleEnded(' + show.id + ',' + (!show.ended) + ')" style="background:var(--border);color:var(--text);border:none;padding:0.3rem 0.9rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">'+(show.ended?'Mark as ongoing':'Mark as ended')+'</button>' +
                         '</div>' +
                         '<div style="margin-top:0.75rem;">' +
                             '<span style="font-size:0.8rem;color:var(--text-muted);margin-right:0.5rem;">Rating:</span>' +
@@ -436,6 +438,11 @@
 
             async function toggleWatchlist(showId, watchlist) {
                 await fetch('/api/shows/'+showId+'/watchlist?watchlist='+watchlist, {method:'PATCH'});
+                loadDetail();
+            }
+
+            async function toggleEnded(showId, ended) {
+                await fetch('/api/shows/'+showId+'/ended?ended='+ended, {method:'PATCH'});
                 loadDetail();
             }
 

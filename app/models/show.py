@@ -31,6 +31,7 @@ class Show(Base):
     missing_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     missing_details: Mapped[str | None] = mapped_column(Text, nullable=True)
     missing_season_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    ended: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     hidden: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     watchlist: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     rating: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

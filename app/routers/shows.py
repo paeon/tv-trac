@@ -156,6 +156,23 @@ async def toggle_watchlist(
     return show
 
 
+@router.patch("/{show_id}/ended", response_model=ShowOut)
+async def toggle_ended(
+    show_id: int,
+    ended: bool = True,
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark a show as ended (no more seasons/episodes expected)."""
+    result = await db.execute(select(Show).where(Show.id == show_id))
+    show = result.scalar_one_or_none()
+    if not show:
+        raise HTTPException(status_code=404, detail="Show not found")
+    show.ended = ended
+    await db.commit()
+    await db.refresh(show)
+    return show
+
+
 @router.patch("/{show_id}/rating", response_model=ShowOut)
 async def set_rating(
     show_id: int,

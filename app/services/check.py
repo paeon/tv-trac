@@ -37,6 +37,20 @@ async def check_missing(db: AsyncSession, store: bool = False) -> dict[str, Any]
 
     report = []
     for show in shows:
+        if show.ended:
+            if store:
+                show.missing_count = 0
+                show.missing_details = None
+                show.missing_season_count = 0
+            report.append(
+                {
+                    "title": show.title,
+                    "status": "ended",
+                    "message": "Marked as ended — skipping",
+                }
+            )
+            continue
+
         if not show.tvdb_id:
             if store:
                 show.missing_count = 0

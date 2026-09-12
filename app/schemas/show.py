@@ -78,6 +78,7 @@ class ShowOut(BaseModel):
     missing_count: int
     missing_details: str | None
     missing_season_count: int
+    ended: bool
     hidden: bool
     watchlist: bool
     rating: int
