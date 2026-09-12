@@ -60,17 +60,18 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 - **Watchlist** — toggle shows/movies onto a watchlist, with a quick filter and a `WL` badge.
 - **Star ratings** — 0–5 stars per show/movie, with per-rating filters and high/low sorting.
 - **Hide/unhide** — keep a show/movie in the database but hide it from the main listings (e.g. dropped shows).
+- **Ended flag** — mark a show as ended (no more seasons/episodes expected); ended shows are skipped by the missing-episode check.
 
 ### UI & browsing
 
 - **Three pages** — Shows, Movies, and Recently Aired Episodes.
 - **Grid (default) and list views**, toggleable, with larger poster-centric grid cards.
 - **Search-as-you-type** on all pages (with a clear-field button).
-- **Filters** — status, watchlist, hidden, rating (1–5 stars), first-aired/release-date range, and a "New Content" filter (days since added).
+- **Filters** — status, watchlist, hidden, ended, rating (1–5 stars), first-aired/release-date range, and a "New Content" filter (days since added).
 - **Sorting** — A–Z, Z–A, Recently Added, First Aired (newest/oldest), Rating (high/low).
 - **Pagination** — 10 / 25 / 50 / 100 items per page.
 - **Recently Aired Episodes** — a dedicated page listing episodes by air date across all shows, with order/limit/filter controls, hidden-show detection, and deep links back to the show/season/episode.
-- **Per-show stats** — each show card shows season counts (available · watched · missing) and episode counts (available · watched · missing) at a glance, with missing highlighted.
+- **Per-show stats** — each show card shows season counts (available · watched · missing) and episode counts (available · watched · missing) at a glance, with missing highlighted, plus the date it was added.
 - **Show & movie detail pages** — full metadata, poster, collapsible seasons (expand/collapse all), per-episode watched state, notes, IMDb links, rating, watchlist and hide toggles.
 - **Overview popovers** — click the ⓘ icon to read a show/movie/episode overview without cluttering the screen.
 - **External links** — to TheTVDB (series), TMDB (movie), and IMDb.
@@ -221,10 +222,10 @@ ln -s docker-compose.yml compose.yaml
 
 | Page | What you can do |
 |---|---|
-| **Shows** | Search, filter, sort, switch grid/list, mark watched status, add notes, rate, watchlist, hide/unhide, open the detail page |
+| **Shows** | Search, filter, sort, switch grid/list, mark watched status, add notes, rate, watchlist, hide/unhide, mark ended, open the detail page |
 | **Movies** | Same as shows, but for movies |
 | **Recently Aired Episodes** | See the latest aired episodes across all shows, filter/search, sort, limit, hide watched, and jump to a show/season/episode |
-| **Show detail** | Poster, overview, IMDb/TVDB links, notes, rating, watchlist/hide toggles, collapsible seasons, per-episode watched + calendar dates |
+| **Show detail** | Poster, overview, IMDb/TVDB links, notes, rating, watchlist/hide/ended toggles, first-aired + added dates, collapsible seasons, per-episode watched + calendar dates |
 | **Movie detail** | Poster, overview, IMDb/TMDB links, notes, rating, watchlist/hide toggles, watched + calendar date |
 
 **Common actions:**
@@ -247,7 +248,7 @@ The data model:
 
 | Table | Key fields |
 |---|---|
-| `shows` | `title`, `tvdb_id`, `tvdb_slug`, `overview`, `poster_path`, `first_aired`, `notes`, `imdb_id`, `missing_count`, `missing_details`, `missing_season_count`, `hidden`, `watchlist`, `rating`, `part_watched`, `deleted`, `created_at`, `updated_at` |
+| `shows` | `title`, `tvdb_id`, `tvdb_slug`, `overview`, `poster_path`, `first_aired`, `notes`, `imdb_id`, `missing_count`, `missing_details`, `missing_season_count`, `ended`, `hidden`, `watchlist`, `rating`, `part_watched`, `deleted`, `created_at`, `updated_at` |
 | `seasons` | `show_id`, `season_number`, `poster_path`, `part_watched`, `created_at` |
 | `episodes` | `season_id`, `episode_number`, `title`, `overview`, `air_date`, `runtime`, `watched`, `watched_at`, `file_path`, `image_path` |
 | `movies` | `title`, `tmdb_id`, `overview`, `poster_path`, `first_aired`, `runtime`, `notes`, `imdb_id`, `hidden`, `watchlist`, `rating`, `watched`, `watched_at`, `file_path`, `deleted`, `created_at`, `updated_at` |
@@ -322,6 +323,7 @@ docker compose logs -f tvtrac
 | `PATCH` | `/api/shows/{id}/notes?notes=...` | Set/clear notes |
 | `PATCH` | `/api/shows/{id}/imdb?imdb_id=...` | Set/clear IMDb ID |
 | `PATCH` | `/api/shows/{id}/hidden?hidden=true` | Hide/unhide |
+| `PATCH` | `/api/shows/{id}/ended?ended=true` | Mark as ended/ongoing |
 | `PATCH` | `/api/shows/{id}/watchlist?watchlist=true` | Add/remove from watchlist |
 | `PATCH` | `/api/shows/{id}/rating?rating=3` | Set 0–5 rating |
 | `PATCH` | `/api/shows/episodes/{id}/watch?watched=true&watched_at=YYYY-MM-DD` | Toggle episode watched (optional custom date) |
