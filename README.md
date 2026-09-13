@@ -48,8 +48,10 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 
 ### Local artwork caching
 
-- Posters, season posters, and episode screencaps are **downloaded and served locally** (under `data/images/`) rather than hot-linked.
-- Downloads happen during a scan and are reused on subsequent scans.
+- Artwork is **preferred from local files first**, then downloaded from TheTVDB/TMDB as a fallback — reducing API load on large libraries.
+- Local posters/thumbnails are recognised by Kodi/Plex/Emby conventions: `poster.*`, `folder.*`, `cover.*`, `show.*`, `movie.*`, and episode `{filename}-thumb.*` files next to the video.
+- Everything is copied/downloaded to `data/images/{show|movie|season|episode}/` and served locally rather than hot-linked.
+- Cached files are reused on subsequent scans.
 
 ### Tracking & organisation
 
@@ -67,7 +69,7 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 - **Three pages** — Shows, Movies, and Recently Aired Episodes.
 - **Grid (default) and list views**, toggleable, with larger poster-centric grid cards.
 - **Search-as-you-type** on all pages (with a clear-field button).
-- **Filters** — status, watchlist, hidden, ended, rating (1–5 stars), first-aired/release-date range, and a "New Content" filter (days since added).
+- **Filters** — status, watchlist, hidden, ended, rating (1–5 stars), first-aired/release-date (Upcoming, Last month, Last six months, 1/3/5/10 years, and older), and a "New Content" filter (days since added).
 - **Sorting** — A–Z, Z–A, Recently Added, First Aired (newest/oldest), Rating (high/low).
 - **Pagination** — 10 / 25 / 50 / 100 items per page.
 - **Recently Aired Episodes** — a dedicated page listing episodes by air date across all shows, with order/limit/filter controls, hidden-show detection, and deep links back to the show/season/episode.
@@ -226,11 +228,11 @@ ln -s docker-compose.yml compose.yaml
 | **Movies** | Same as shows, but for movies |
 | **Recently Aired Episodes** | See the latest aired episodes across all shows, filter/search, sort, limit, hide watched, and jump to a show/season/episode |
 | **Show detail** | Poster, overview, IMDb/TVDB links, notes, rating, watchlist/hide/ended toggles, first-aired + added dates, collapsible seasons, per-episode watched + calendar dates |
-| **Movie detail** | Poster, overview, IMDb/TMDB links, notes, rating, watchlist/hide toggles, watched + calendar date |
+| **Movie detail** | Poster, overview, IMDb/TMDB links, notes, rating, watchlist/hide toggles, released + added dates, watched + calendar date |
 
 **Common actions:**
 
-- **Scan** — the `🔍 Scan` button in the header scans TV shows then movies.
+- **Scan** — the `🔍 Scan` button in the header scans TV shows then movies, with a live "Scanning shows… / Scanning movies…" status, an elapsed timer, and a **Cancel scan** button. The page header switches to "Scanning shows and movies…" during the scan and is restored on refresh.
 - **Check Missing** — the `⚠️ Check Missing` button re-checks TV shows against TheTVDB and flags missing seasons/episodes.
 - **Mark watched** — click an episode/movie watched badge; use the calendar link to set a custom date.
 - **Change date/time format** — click the flag button in the header to switch between Default, US, UK, and ISO formats.
