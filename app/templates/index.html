@@ -380,7 +380,7 @@
                         <rect x="2" y="7" width="20" height="14" rx="2" />
                         <polyline points="17 2 12 7 7 2" />
                     </svg>
-                    <h1>TV-Trac</h1>
+                    <h1><a href="/" style="color: inherit; text-decoration: none">TV-Trac</a></h1>
                 </div>
                 <p
                     style="
@@ -602,6 +602,9 @@
                             First Aired Filter
                         </option>
                         <option value="all">All Time</option>
+                        <option value="upcoming">Upcoming</option>
+                        <option value="month">Last month</option>
+                        <option value="6months">Last six months</option>
                         <option value="1">Premiered in last year</option>
                         <option value="3">Premiered in last 3 years</option>
                         <option value="5">Premiered in last 5 years</option>
@@ -640,7 +643,8 @@
                 </div>
                 <div class="card">
                     <h2>
-                        Your Shows
+                        <span id="shows-title-text">Your Shows</span>
+                        <span id="shows-scanning" style="display:none">Scanning shows and movies…</span>
                         <span
                             id="show-count"
                             style="color: var(--text-muted); font-size: 0.85rem"
@@ -734,6 +738,9 @@
                             Release Date Filter
                         </option>
                         <option value="all">All Time</option>
+                        <option value="upcoming">Upcoming</option>
+                        <option value="month">Last month</option>
+                        <option value="6months">Last six months</option>
                         <option value="1">Released in last year</option>
                         <option value="3">Released in last 3 years</option>
                         <option value="5">Released in last 5 years</option>
@@ -914,9 +921,19 @@
                 if (isNaN(y) || isNaN(m) || isNaN(d)) return false;
                 var aired = new Date(Date.UTC(y, m - 1, d));
                 var now = new Date();
-                var years =
+
+                // Shows/movies with a first-aired/release date still in the future.
+                if (filterVal === "upcoming") {
+                    return aired.getTime() > now.getTime();
+                }
+
+                var days =
                     (now.getTime() - aired.getTime()) /
-                    (1000 * 60 * 60 * 24 * 365.25);
+                    (1000 * 60 * 60 * 24);
+                if (filterVal === "month") return days >= 0 && days <= 31;
+                if (filterVal === "6months") return days >= 0 && days <= 183;
+
+                var years = days / 365.25;
                 if (filterVal === "older") return years > 10;
                 var maxYears = parseInt(filterVal);
                 return years >= 0 && years <= maxYears;
@@ -1045,7 +1062,16 @@
                 applyShowFilters();
                 document.getElementById("shows-search").focus();
             }
+            function restoreShowsHeader() {
+                var t = document.getElementById("shows-title-text");
+                var s = document.getElementById("shows-scanning");
+                var c = document.getElementById("show-count");
+                if (t) t.style.display = "";
+                if (s) s.style.display = "none";
+                if (c) c.style.display = "";
+            }
             function applyShowFilters() {
+                restoreShowsHeader();
                 showSearch = document
                     .getElementById("shows-search")
                     .value.toLowerCase();
@@ -1893,8 +1919,16 @@
                 document.getElementById("page-shows").style.display = "block";
                 document.getElementById("page-movies").style.display = "none";
 
+                // Replace the whole header with a scanning message while we run.
+                // It is restored by fetchShows() (via applyShowFilters) on refresh.
+                document.getElementById("shows-title-text").style.display = "none";
+                document.getElementById("show-count").style.display = "none";
+                document.getElementById("shows-scanning").style.display = "";
+
                 var el = document.getElementById("shows-list");
-                el.innerHTML = '<p class="loading">Scanning shows...</p>';
+
+                // Allow the scan to be cancelled client-side.
+                var scanAbort = new AbortController();
 
                 // Count-up timer for visual feedback
                 var seconds = 0;
@@ -1902,15 +1936,43 @@
                 timerEl.style.color = "var(--accent)";
                 timerEl.style.fontWeight = "bold";
                 timerEl.textContent = "Elapsed: 0s";
-                el.appendChild(timerEl);
                 var timer = setInterval(function () {
                     seconds++;
                     timerEl.textContent = "Elapsed: " + seconds + "s";
                 }, 1000);
 
+                var cancelBtn = document.createElement("button");
+                cancelBtn.textContent = "✕ Cancel scan";
+                cancelBtn.style.background = "var(--border)";
+                cancelBtn.style.color = "var(--text)";
+                cancelBtn.style.border = "1px solid var(--border)";
+                cancelBtn.style.borderRadius = "4px";
+                cancelBtn.style.padding = "0.3rem 0.7rem";
+                cancelBtn.style.fontSize = "0.75rem";
+                cancelBtn.style.cursor = "pointer";
+                cancelBtn.style.marginTop = "0.25rem";
+                cancelBtn.onclick = function () {
+                    scanAbort.abort();
+                };
+
+                // Status area is rebuilt as the scan progresses so the user
+                // can see the current phase (shows → movies).
+                var statusEl = document.createElement("div");
+                function renderStatus(html) {
+                    el.innerHTML = "";
+                    el.appendChild(statusEl);
+                    el.appendChild(timerEl);
+                    el.appendChild(cancelBtn);
+                    statusEl.innerHTML = html;
+                }
+
+                renderStatus('<p class="loading">📺 Scanning shows...</p>');
+
                 try {
-                    var data = await apiFetch("/api/scan", { method: "POST" });
-                    clearInterval(timer);
+                    var data = await apiFetch("/api/scan", {
+                        method: "POST",
+                        signal: scanAbort.signal,
+                    });
                     var count =
                         data.shows_synced != null
                             ? data.shows_synced
@@ -1924,34 +1986,67 @@
                     html +=
                         ' <button onclick="fetchShows()">Refresh</button></p>';
 
-                    // Also scan movies
+                    // Show a "scanning movies" phase while the movie scan runs.
+                    html += "__MOVIES_STATUS__";
+                    renderStatus(
+                        html.replace(
+                            "__MOVIES_STATUS__",
+                            '<p class="loading">🎬 Scanning movies...</p>',
+                        ),
+                    );
+
                     try {
                         var md = await apiFetch("/api/movies/scan", {
                             method: "POST",
+                            signal: scanAbort.signal,
                         });
                         var mc =
                             md.movies_synced != null ? md.movies_synced : 0;
-                        html +=
+                        var movieHtml =
                             "<p>🎬 Movies: found <strong>" + mc + "</strong>.";
                         if (md.created != null)
-                            html += " Created: " + md.created + ".";
+                            movieHtml += " Created: " + md.created + ".";
                         if (md.deleted != null && md.deleted > 0)
-                            html += " 🗑️ " + md.deleted + ".";
-                        html += "</p>";
+                            movieHtml += " 🗑️ " + md.deleted + ".";
+                        movieHtml += "</p>";
+                        renderStatus(
+                            html.replace("__MOVIES_STATUS__", movieHtml),
+                        );
                     } catch (e) {
-                        html +=
-                            "<p>🎬 Movies: scan failed — " +
+                        if (scanAbort.signal.aborted) throw e;
+                        renderStatus(
+                            html.replace(
+                                "__MOVIES_STATUS__",
+                                "<p>🎬 Movies: scan failed — " +
+                                    escapeHtml(e.message) +
+                                    "</p>",
+                            ),
+                        );
+                    }
+
+                    clearInterval(timer);
+                    // Drop the timer/cancel button and leave just the summary.
+                    el.innerHTML = statusEl.innerHTML;
+
+                    // Refresh the in-memory movie cache so soft-deleted movies
+                    // disappear immediately. The Movies page only re-fetches
+                    // when its cache is empty, so it would otherwise show stale
+                    // results until the browser is refreshed.
+                    await fetchMovies();
+                } catch (e) {
+                    clearInterval(timer);
+                    restoreShowsHeader();
+                    if (scanAbort.signal.aborted) {
+                        el.innerHTML =
+                            '<p class="error">Scan cancelled.</p>' +
+                            '<button onclick="location.reload()" style="background:var(--accent);color:#fff;border:none;padding:0.35rem 0.9rem;border-radius:4px;font-size:0.75rem;cursor:pointer;margin-right:0.5rem;">Refresh</button>' +
+                            '<a href="/" style="color:var(--text-muted);font-size:0.75rem;">Back to start</a>';
+                    } else {
+                        el.innerHTML =
+                            '<p class="error">Scan failed: ' +
                             escapeHtml(e.message) +
                             "</p>";
                     }
-
-                    el.innerHTML = html;
-                } catch (e) {
-                    clearInterval(timer);
-                    el.innerHTML =
-                        '<p class="error">Scan failed: ' +
-                        escapeHtml(e.message) +
-                        "</p>";
                 }
             }
 

@@ -218,7 +218,13 @@
                         '<h2>' + escapeHtml(m.title) + ' <span class="year">(' + (m.first_aired ? m.first_aired.substring(0,4) : '') + ')</span></h2>' +
                         '<span class="badge ' + (m.watched ? 'badge-watched' : 'badge-unwatched') + '">' + (m.watched ? '✓ watched' : 'unwatched') + '</span>' +
                         (m.watched_at ? ' <span style="color:var(--accent);font-size:0.75rem;cursor:pointer;text-decoration:underline;" onclick="openCalendar(event)" title="Change watched date">(' + formatDateLong(m.watched_at.substring(0,10)) + ')</span>' : '') +
-                        (m.first_aired ? '<div class="meta">Released: ' + formatDateLong(m.first_aired) + '</div>' : '') +
+                        ((m.first_aired || m.created_at)
+                            ? '<div class="meta">' +
+                                (m.first_aired ? 'Released: ' + formatDateLong(m.first_aired) : '') +
+                                (m.first_aired && m.created_at ? ' &nbsp;·&nbsp; ' : '') +
+                                (m.created_at ? 'Date added: ' + formatDateLong(m.created_at.substring(0, 10)) : '') +
+                              '</div>'
+                            : '') +
                         (m.runtime ? '<div class="meta">Runtime: ' + m.runtime + 'm</div>' : '') +
                         '<div class="meta" style="display:flex;gap:0.5rem;flex-wrap:wrap;">' +
                             (m.tmdb_id ? '<a class="ext-link" href="https://www.themoviedb.org/movie/' + m.tmdb_id + '" target="_blank">TMDB ↗</a>' : '') +
