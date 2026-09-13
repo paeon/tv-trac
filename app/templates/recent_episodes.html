@@ -415,6 +415,17 @@
                 <option value="desc" selected>Newest first</option>
                 <option value="asc">Oldest first</option>
             </select>
+            <label for="show-limit">Show</label>
+            <select id="show-limit" onchange="load()">
+                <option value="10">Last 10</option>
+                <option value="20">Last 20</option>
+                <option value="30">Last 30</option>
+                <option value="50" selected>Last 50</option>
+                <option value="100">Last 100</option>
+                <option value="200">Last 200</option>
+                <option value="500">Last 500</option>
+                <option value="1000">All</option>
+            </select>
             <label class="hide-watched">
                 <input type="checkbox" id="hide-watched" onchange="load()" />
                 Hide watched
@@ -475,6 +486,7 @@
             var days = document.getElementById('days').value;
             var order = document.getElementById('order').value;
             var excludeWatched = document.getElementById('hide-watched').checked;
+            var limit = document.getElementById('show-limit').value;
             currentMode = mode;
             document.getElementById('page-title').textContent =
                 mode === 'added' ? 'Recently Added Episodes' : 'Recently Aired Episodes';
@@ -485,7 +497,7 @@
                 var url = '/api/episodes/recent?mode=' + mode +
                     '&order=' + order +
                     '&exclude_watched=' + excludeWatched +
-                    '&limit=500';
+                    '&limit=' + limit;
                 if (mode === 'added' && days) url += '&days=' + days;
                 var resp = await fetch(url);
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -516,6 +528,7 @@
             document.getElementById('mode').value = 'aired';
             document.getElementById('days').value = '';
             document.getElementById('order').value = 'desc';
+            document.getElementById('show-limit').value = '50';
             document.getElementById('hide-watched').checked = false;
             onModeChange();
         }
@@ -554,7 +567,7 @@
                 var meta = currentMode === 'added'
                     ? 'Added: ' + (ep.added_at ? formatDateLong(ep.added_at.substring(0, 10)) : '') +
                         (ep.air_date ? ' · Aired: ' + formatDateLong(ep.air_date) : '')
-                    : (ep.air_date ? formatDateLong(ep.air_date) : '');
+                    : (ep.air_date ? 'Aired: ' + formatDateLong(ep.air_date) : '');
                 return '<div class="episode-row">' +
                     (thumbSrc
                         ? '<img class="thumb' + (isEpisode ? ' episode' : '') + '" src="' + thumbSrc + '" onerror="this.style.display=\'none\'">'

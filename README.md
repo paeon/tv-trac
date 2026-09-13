@@ -72,7 +72,7 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 - **Filters** — status, watchlist, hidden, ended, rating (1–5 stars), first-aired/release-date (Upcoming, Last month, Last six months, 1/3/5/10 years, and older), and a "New Content" filter (days since added).
 - **Sorting** — A–Z, Z–A, Recently Added, First Aired (newest/oldest), Rating (high/low).
 - **Pagination** — 10 / 25 / 50 / 100 items per page.
-- **Recently Aired Episodes** — a dedicated page listing episodes across all shows, with a toggle between **Recently Aired** (by air date, the default) and **Recently Added** (by when the episode was scanned in), an "Added in" date filter (last 1/3/7/30 days), pagination, search, hide-watched, hidden-show detection, and deep links back to the show/season/episode.
+- **Recently Aired Episodes** — a dedicated page listing episodes across all shows, with a toggle between **Recently Aired** (by air date, the default) and **Recently Added** (by when the episode was scanned in), an "Added in" date filter (last 1/3/7/30 days), a "Show" depth selector (last 10/20/30/50/100/200/500/All), pagination, search, hide-watched, hidden-show detection, and deep links back to the show/season/episode.
 - **Per-show stats** — each show card shows season counts (available · watched · missing) and episode counts (available · watched · missing) at a glance, with missing highlighted, plus the date it was added.
 - **Show & movie detail pages** — full metadata, poster, collapsible seasons (expand/collapse all), per-episode watched state, notes, IMDb links, rating, watchlist and hide toggles.
 - **Overview popovers** — click the ⓘ icon to read a show/movie/episode overview without cluttering the screen.
@@ -226,7 +226,7 @@ ln -s docker-compose.yml compose.yaml
 |---|---|
 | **Shows** | Search, filter, sort, switch grid/list, mark watched status, add notes, rate, watchlist, hide/unhide, mark ended, open the detail page |
 | **Movies** | Same as shows, but for movies |
-| **Recently Aired Episodes** | Toggle between Recently Aired (default) and Recently Added, filter by "added in" date range, search, sort, hide watched, paginate, and jump to a show/season/episode |
+| **Recently Aired Episodes** | Toggle between Recently Aired (default) and Recently Added, filter by "added in" date range, set the list depth (last N), search, sort, hide watched, paginate, and jump to a show/season/episode |
 | **Show detail** | Poster, overview, IMDb/TVDB links, notes, rating, watchlist/hide/ended toggles, first-aired + added dates, collapsible seasons, per-episode watched + calendar dates |
 | **Movie detail** | Poster, overview, IMDb/TMDB links, notes, rating, watchlist/hide toggles, released + added dates, watched + calendar date |
 
