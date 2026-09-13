@@ -287,6 +287,41 @@
         .error {
             color: var(--accent);
         }
+        .page-nav {
+            display: flex;
+            gap: 0.25rem;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .page-nav button {
+            background: var(--surface);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .page-nav button.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .page-nav button:disabled {
+            opacity: 0.3;
+            cursor: default;
+        }
+        .page-nav select {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.3rem;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
         footer {
             text-align: center;
             color: var(--text-muted);
@@ -360,16 +395,25 @@
                     ✕
                 </button>
             </div>
+            <label for="mode">Type</label>
+            <select id="mode" onchange="onModeChange()">
+                <option value="aired" selected>Recently Aired</option>
+                <option value="added">Recently Added</option>
+            </select>
+            <span id="days-wrap" style="display:none;align-items:center;gap:0.5rem;">
+                <label for="days">Added in</label>
+                <select id="days" onchange="load()">
+                    <option value="" selected>All time</option>
+                    <option value="1">Last 1 day</option>
+                    <option value="3">Last 3 days</option>
+                    <option value="7">Last 7 days</option>
+                    <option value="30">Last 30 days</option>
+                </select>
+            </span>
             <label for="order">Order</label>
             <select id="order" onchange="load()">
                 <option value="desc" selected>Newest first</option>
                 <option value="asc">Oldest first</option>
-            </select>
-            <label for="limit">Limit</label>
-            <select id="limit" onchange="load()">
-                <option value="25">25</option>
-                <option value="50" selected>50</option>
-                <option value="100">100</option>
             </select>
             <label class="hide-watched">
                 <input type="checkbox" id="hide-watched" onchange="load()" />
@@ -379,8 +423,9 @@
         </div>
 
         <div class="card">
-            <h2>Recently Aired Episodes <span id="episode-count"></span></h2>
+            <h2><span id="page-title">Recently Aired Episodes</span> <span id="episode-count"></span></h2>
             <div id="list" class="loading">Loading episodes...</div>
+            <div id="pagination" class="page-nav"></div>
         </div>
     </main>
 
@@ -420,16 +465,29 @@
         }
 
         var allEpisodes = [];
+        var epPage = 1;
+        var epPerPage = 10;
+        var currentMode = 'aired';
 
         async function load() {
             var el = document.getElementById('list');
+            var mode = document.getElementById('mode').value;
+            var days = document.getElementById('days').value;
             var order = document.getElementById('order').value;
-            var limit = document.getElementById('limit').value;
             var excludeWatched = document.getElementById('hide-watched').checked;
+            currentMode = mode;
+            document.getElementById('page-title').textContent =
+                mode === 'added' ? 'Recently Added Episodes' : 'Recently Aired Episodes';
+            epPage = 1;
             el.className = 'loading';
             el.textContent = 'Loading episodes...';
             try {
-                var resp = await fetch('/api/episodes/recent?limit=' + limit + '&order=' + order + '&exclude_watched=' + excludeWatched);
+                var url = '/api/episodes/recent?mode=' + mode +
+                    '&order=' + order +
+                    '&exclude_watched=' + excludeWatched +
+                    '&limit=500';
+                if (mode === 'added' && days) url += '&days=' + days;
+                var resp = await fetch(url);
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 var data = await resp.json();
                 allEpisodes = data.episodes || [];
@@ -441,6 +499,13 @@
             }
         }
 
+        function onModeChange() {
+            var mode = document.getElementById('mode').value;
+            document.getElementById('days-wrap').style.display =
+                mode === 'added' ? 'inline-flex' : 'none';
+            load();
+        }
+
         function clearFilter() {
             document.getElementById('filter').value = '';
             renderList();
@@ -448,10 +513,11 @@
 
         function clearAll() {
             document.getElementById('filter').value = '';
+            document.getElementById('mode').value = 'aired';
+            document.getElementById('days').value = '';
             document.getElementById('order').value = 'desc';
-            document.getElementById('limit').value = '50';
             document.getElementById('hide-watched').checked = false;
-            load();
+            onModeChange();
         }
 
         function renderList() {
@@ -472,14 +538,23 @@
             if (!eps.length) {
                 el.className = '';
                 el.innerHTML = '<p class="loading">No episodes match.</p>';
+                document.getElementById('pagination').innerHTML = '';
                 return;
             }
 
+            epPage = Math.min(epPage, Math.ceil(eps.length / epPerPage) || 1);
+            var start = (epPage - 1) * epPerPage;
+            var paged = eps.slice(start, start + epPerPage);
+
             el.className = '';
-            el.innerHTML = eps.map(function (ep) {
+            el.innerHTML = paged.map(function (ep) {
                 var link = '/show/' + ep.show_id + '?episode=' + ep.id + '&season=' + ep.season_number;
                 var thumbSrc = ep.episode_image || ep.show_poster;
                 var isEpisode = !!ep.episode_image;
+                var meta = currentMode === 'added'
+                    ? 'Added: ' + (ep.added_at ? formatDateLong(ep.added_at.substring(0, 10)) : '') +
+                        (ep.air_date ? ' · Aired: ' + formatDateLong(ep.air_date) : '')
+                    : (ep.air_date ? formatDateLong(ep.air_date) : '');
                 return '<div class="episode-row">' +
                     (thumbSrc
                         ? '<img class="thumb' + (isEpisode ? ' episode' : '') + '" src="' + thumbSrc + '" onerror="this.style.display=\'none\'">'
@@ -492,12 +567,47 @@
                             : '') +
                         '</div>' +
                         '<div class="ep-title">S' + pad(ep.season_number) + 'E' + pad(ep.episode_number) + ' - ' + escapeHtml(ep.title || 'Episode ' + ep.episode_number) + (ep.runtime ? ' (' + ep.runtime + 'm)' : '') + '</div>' +
-                        '<div class="episode-meta">' + (ep.air_date ? formatDateLong(ep.air_date) : '') + '</div>' +
+                        '<div class="episode-meta">' + meta + '</div>' +
                     '</div>' +
                     infoIcon(ep.overview) +
                     '<span class="badge ' + (ep.watched ? 'badge-watched' : 'badge-unwatched') + '">' + (ep.watched ? '✓ watched' : 'unwatched') + '</span>' +
                 '</div>';
             }).join('');
+
+            renderPagination(eps.length);
+        }
+
+        function renderPagination(total) {
+            var el = document.getElementById('pagination');
+            var pages = Math.ceil(total / epPerPage) || 1;
+            var html = '';
+            if (total > epPerPage) {
+                html += '<button onclick="goPage(' + (epPage - 1) + ')"' + (epPage <= 1 ? ' disabled' : '') + '>« Prev</button>';
+                var start = Math.max(1, epPage - 2);
+                var end = Math.min(pages, epPage + 2);
+                for (var i = start; i <= end; i++) {
+                    html += '<button class="' + (i === epPage ? 'active' : '') + '" onclick="goPage(' + i + ')">' + i + '</button>';
+                }
+                html += '<button onclick="goPage(' + (epPage + 1) + ')"' + (epPage >= pages ? ' disabled' : '') + '>Next »</button>';
+            }
+            html += '<select onchange="goPerPage(this.value)">' +
+                '<option value="10"' + (epPerPage === 10 ? ' selected' : '') + '>10</option>' +
+                '<option value="25"' + (epPerPage === 25 ? ' selected' : '') + '>25</option>' +
+                '<option value="50"' + (epPerPage === 50 ? ' selected' : '') + '>50</option>' +
+                '<option value="100"' + (epPerPage === 100 ? ' selected' : '') + '>100</option>' +
+                '</select>';
+            el.innerHTML = html;
+        }
+
+        function goPage(p) {
+            epPage = p;
+            renderList();
+        }
+
+        function goPerPage(n) {
+            epPerPage = parseInt(n);
+            epPage = 1;
+            renderList();
         }
 
         function onLocaleSelect() {

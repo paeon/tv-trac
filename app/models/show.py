@@ -89,6 +89,7 @@ class Episode(Base):
     watched_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     file_path: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     image_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
 
     season: Mapped[Season] = relationship("Season", back_populates="episodes")
 

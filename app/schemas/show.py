@@ -31,6 +31,7 @@ class EpisodeOut(BaseModel):
     watched_at: datetime | None
     file_path: str | None
     image_path: str | None
+    created_at: datetime
 
 
 # ── Season ───────────────────────────────────────────────────────────────────
