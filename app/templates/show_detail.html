@@ -35,14 +35,14 @@
             }
             header {
                 background: var(--surface);
-                padding: 1rem 2rem;
+                padding: 1.5rem 2rem;
                 border-bottom: 1px solid var(--border);
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
             }
             header h1 {
-                font-size: 1.3rem;
+                font-size: 1.5rem;
                 color: var(--accent);
             }
             header a {
@@ -52,6 +52,24 @@
             }
             header a:hover {
                 color: var(--accent);
+            }
+            nav {
+                display: flex;
+                gap: 0;
+                border-bottom: 1px solid var(--border);
+                margin-bottom: 1rem;
+            }
+            nav a {
+                color: var(--text-muted);
+                text-decoration: none;
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+                border-bottom: 2px solid transparent;
+                cursor: pointer;
+            }
+            nav a.active {
+                color: var(--accent);
+                border-bottom-color: var(--accent);
             }
             main {
                 max-width: var(--content-max-width);
@@ -207,8 +225,8 @@
             <div>
                 <div style="display: flex; align-items: center; gap: 0.5rem">
                     <svg
-                        width="24"
-                        height="24"
+                        width="28"
+                        height="28"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="#e94560"
@@ -219,12 +237,12 @@
                         <rect x="2" y="7" width="20" height="14" rx="2" />
                         <polyline points="17 2 12 7 7 2" />
                     </svg>
-                    <h1>TV-Trac</h1>
+                    <h1><a href="/" style="color: inherit; text-decoration: none; font-size: inherit">TV-Trac</a></h1>
                 </div>
                 <p
                     style="
                         color: var(--text-muted);
-                        font-size: 0.7rem;
+                        font-size: 0.75rem;
                         margin-top: 0.1rem;
                     "
                 >
@@ -247,6 +265,11 @@
                 <a href="/">← Back to shows</a>
             </div>
         </header>
+        <nav>
+            <a href="/" class="active">📺 Shows</a>
+            <a href="/?tab=movies">🎬 Movies</a>
+            <a href="/recent-episodes">🕒 Recent Episodes</a>
+        </nav>
         <main>
             <div id="detail" class="loading">Loading...</div>
         </main>
