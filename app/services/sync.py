@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.show import Episode, Season, Show
 from app.services.check import check_missing
-from app.services.images import download_image
+from app.services.images import download_image, store_local_image
 from app.services.scanner import ScannedShow, scan_media_root
 from app.services.tvdb import tvdb
 
@@ -234,8 +234,12 @@ async def _sync_one_show(
         if tvdb_imdb_id and not show.imdb_id:
             show.imdb_id = tvdb_imdb_id
 
-    # Store the poster locally (downloads on first scan, reuses cached file)
-    if tvdb_poster and (
+    # Prefer local artwork, then fall back to the API
+    if scanned_show.poster_path:
+        local_poster = store_local_image(scanned_show.poster_path, "show", show.id)
+        if local_poster:
+            show.poster_path = local_poster
+    elif tvdb_poster and (
         not show.poster_path or show.poster_path.startswith(("http://", "https://"))
     ):
         local_poster = await download_image(tvdb_poster, "show", show.id)
@@ -282,8 +286,12 @@ async def _sync_one_show(
                     "Failed to get season extended for season %d", season_num
                 )
 
-        # Store the season poster locally
-        if tvdb_season_poster and (
+        # Prefer a local season poster, then fall back to the API
+        if scanned_season.poster_path:
+            local_poster = store_local_image(scanned_season.poster_path, "season", season.id)
+            if local_poster:
+                season.poster_path = local_poster
+        elif tvdb_season_poster and (
             not season.poster_path
             or season.poster_path.startswith(("http://", "https://"))
         ):
@@ -353,9 +361,13 @@ async def _sync_one_show(
                 if episode.runtime is None and tvdb_ep.get("runtime"):
                     episode.runtime = tvdb_ep["runtime"]
 
-            # Store the episode screencap locally
+            # Prefer a local screenshot, then fall back to the API
             screencap = tvdb_ep.get("image")
-            if screencap and (
+            if scanned_ep.thumb_path:
+                local_image = store_local_image(scanned_ep.thumb_path, "episode", episode.id)
+                if local_image:
+                    episode.image_path = local_image
+            elif screencap and (
                 not episode.image_path
                 or episode.image_path.startswith(("http://", "https://"))
             ):

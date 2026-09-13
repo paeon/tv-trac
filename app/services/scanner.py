@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from app.config import settings
+from app.services.images import find_local_poster, find_local_thumbnail
 from app.services.nfo import find_nfo
 
 logger = logging.getLogger(__name__)
@@ -46,12 +47,14 @@ class ScannedEpisode:
     season_number: int
     episode_number: int
     filename: str
+    thumb_path: str | None = None
 
 
 @dataclass
 class ScannedSeason:
     season_number: int
     episodes: list[ScannedEpisode] = field(default_factory=list)
+    poster_path: str | None = None
 
 
 @dataclass
@@ -60,6 +63,7 @@ class ScannedShow:
     folder_path: str
     tvdb_id: int | None = None
     tmdb_id: int | None = None
+    poster_path: str | None = None
     seasons: dict[int, ScannedSeason] = field(default_factory=dict)
 
 
@@ -108,6 +112,9 @@ def scan_media_root() -> dict[str, ScannedShow]:
 
         show = ScannedShow(title=show_dir.name, folder_path=str(show_dir))
 
+        # Check for local poster artwork
+        show.poster_path = find_local_poster(show_dir)
+
         # Check for .nfo file for better title/ID matching
         nfo = find_nfo(Path(show_dir))
         if nfo:
@@ -128,6 +135,7 @@ def scan_media_root() -> dict[str, ScannedShow]:
                 continue
 
             season = ScannedSeason(season_number=season_num)
+            season.poster_path = find_local_poster(season_dir)
             show.seasons[season_num] = season
 
             for episode_file in sorted(season_dir.iterdir()):
@@ -148,6 +156,7 @@ def scan_media_root() -> dict[str, ScannedShow]:
                         season_number=ep_season,
                         episode_number=ep_num,
                         filename=episode_file.name,
+                        thumb_path=find_local_thumbnail(episode_file),
                     )
                 )
 

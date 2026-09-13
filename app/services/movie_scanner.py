@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from app.config import settings
+from app.services.images import find_local_poster
 from app.services.nfo import find_nfo
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,7 @@ class ScannedMovie:
     tvdb_id: int | None = None
     nfo_title: str | None = None
     nfo_year: str | None = None
+    poster_path: str | None = None
 
 
 def scan_movie_root() -> list[ScannedMovie]:
@@ -58,6 +60,9 @@ def scan_movie_root() -> list[ScannedMovie]:
             continue
 
         movie = ScannedMovie(title=movie_dir.name, folder_path=str(movie_dir))
+
+        # Check for local poster artwork
+        movie.poster_path = find_local_poster(movie_dir)
 
         # Check for .nfo file
         nfo = find_nfo(Path(movie_dir))

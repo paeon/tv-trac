@@ -12,7 +12,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.movie import Movie
-from app.services.images import download_image
+from app.services.images import download_image, store_local_image
 from app.services.movie_scanner import scan_movie_root
 from app.services.nfo import find_nfo
 from app.services.tmdb import IMAGE_BASE, tmdb
@@ -149,8 +149,12 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
         if not movie.file_path and sm.file_path:
             movie.file_path = sm.file_path
 
-    # Store the poster locally (downloads on first scan, reuses cached file)
-    if poster and (
+    # Prefer local artwork, then fall back to the TMDB poster
+    if sm.poster_path:
+        local_poster = store_local_image(sm.poster_path, "movie", movie.id)
+        if local_poster:
+            movie.poster_path = local_poster
+    elif poster and (
         not movie.poster_path or movie.poster_path.startswith(("http://", "https://"))
     ):
         local_poster = await download_image(poster, "movie", movie.id)
