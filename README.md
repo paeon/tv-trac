@@ -91,7 +91,9 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 3. **Persist** upserts everything into SQLite and downloads artwork into a local image cache.
 4. **Serve** exposes a FastAPI backend and a Jinja2/vanilla-JS web UI at `http://localhost:8000`.
 
-The scan is triggered from the **🔍 Scan** button (scans TV then movies), and the **⚠️ Check Missing** button re-checks the TV library against TheTVDB for missing seasons/episodes.
+Scans are **incremental**: items that already have their metadata and whose seasons/episodes are already in the database are **skipped** on subsequent scans (the API is only hit for new or changed items). The first scan is the slow one; later scans are much faster.
+
+The scan is triggered from the **🔍 Scan** button (scans TV then movies), and the **⚠️ Check Missing** button re-checks the TV library against TheTVDB for missing seasons/episodes. The missing-episode check is **on-demand** (it is no longer run automatically after a scan, since it re-queries the whole library).
 
 ---
 

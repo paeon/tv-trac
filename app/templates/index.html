@@ -1981,6 +1981,8 @@
                         "<p>📺 Shows: found <strong>" + count + "</strong>.";
                     if (data.created != null)
                         html += " Created: " + data.created + ".";
+                    if (data.skipped != null && data.skipped > 0)
+                        html += " ⏭️ " + data.skipped + " skipped.";
                     if (data.deleted != null && data.deleted > 0)
                         html += " 🗑️ " + data.deleted + ".";
                     html +=
@@ -2006,6 +2008,8 @@
                             "<p>🎬 Movies: found <strong>" + mc + "</strong>.";
                         if (md.created != null)
                             movieHtml += " Created: " + md.created + ".";
+                        if (md.skipped != null && md.skipped > 0)
+                            movieHtml += " ⏭️ " + md.skipped + " skipped.";
                         if (md.deleted != null && md.deleted > 0)
                             movieHtml += " 🗑️ " + md.deleted + ".";
                         movieHtml += "</p>";

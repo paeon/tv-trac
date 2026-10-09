@@ -14,9 +14,9 @@ from typing import Any
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.show import Episode, Season, Show
-from app.services.check import check_missing
 from app.services.images import download_image, store_local_image
 from app.services.scanner import ScannedShow, scan_media_root
 from app.services.tvdb import tvdb
@@ -52,6 +52,25 @@ def _extract_imdb_id(data: dict[str, Any]) -> str | None:
     return None
 
 
+def _is_fully_synced(show: Show | None, scanned_show: ScannedShow) -> bool:
+    """True if the show has its metadata and every scanned season/episode
+    is already in the DB, so no TheTVDB call is needed."""
+    if show is None:
+        return False
+    if not (show.overview and show.first_aired):
+        return False
+    existing_seasons = {s.season_number: s for s in show.seasons}
+    for season_num, scanned_season in scanned_show.seasons.items():
+        season = existing_seasons.get(season_num)
+        if season is None:
+            return False
+        existing_eps = {e.episode_number for e in season.episodes}
+        for scanned_ep in scanned_season.episodes:
+            if scanned_ep.episode_number not in existing_eps:
+                return False
+    return True
+
+
 async def sync_shows(db: AsyncSession) -> dict[str, Any]:
     """Full scan-and-sync pipeline."""
     scanned = scan_media_root()
@@ -82,6 +101,7 @@ async def sync_shows(db: AsyncSession) -> dict[str, Any]:
 
     created = sum(1 for r in results if r.get("status") == "created")
     updated = sum(1 for r in results if r.get("status") == "updated")
+    skipped = sum(1 for r in results if r.get("status") == "skipped")
 
     # ── Mark missing shows as deleted ─────────────────────────────────
     scanned_titles = set(scanned.keys())
@@ -97,21 +117,14 @@ async def sync_shows(db: AsyncSession) -> dict[str, Any]:
         await db.commit()
         logger.info("Soft-deleted %d show(s) no longer on disk", deleted_count)
 
-    # ── Check for missing episodes and store results ───────────────────
-    missing_report = None
-    try:
-        missing_report = await check_missing(db, store=True)
-    except Exception:
-        logger.warning("Failed to check for missing episodes after scan")
-
     return {
         "status": "ok",
         "shows_synced": len(results),
         "created": created,
         "updated": updated,
+        "skipped": skipped,
         "deleted": deleted_count,
         "shows": results,
-        "missing": missing_report.get("shows") if missing_report else None,
     }
 
 
@@ -119,6 +132,24 @@ async def _sync_one_show(
     db: AsyncSession, title: str, scanned_show: ScannedShow, tvdb_available: bool = True
 ) -> dict[str, Any]:
     """Sync a single scanned show against TVDB and the database."""
+
+    # ── 0. Skip the API if this show is already fully synced ──────────────
+    conditions = [Show.title == title]
+    if scanned_show.tvdb_id:
+        conditions.append(Show.tvdb_id == scanned_show.tvdb_id)
+    existing = await db.execute(
+        select(Show)
+        .options(selectinload(Show.seasons).selectinload(Season.episodes))
+        .where(or_(*conditions))
+    )
+    existing_show = existing.scalar_one_or_none()
+    if _is_fully_synced(existing_show, scanned_show):
+        logger.info("Skipping %r — already fully synced", title)
+        return {
+            "title": title,
+            "show_id": existing_show.id,
+            "status": "skipped",
+        }
 
     # ── 1. Try to find a TVDB match ─────────────────────────────────────
     tvdb_id: int | None = None

@@ -35,12 +35,12 @@ async def sync_movies(db: AsyncSession) -> dict[str, Any]:
             logger.exception("Failed to sync movie %r: %s", sm.title, exc)
             results.append({"title": sm.title, "status": "error", "error": str(exc)})
 
-    # Soft-delete movies no longer on disk
-    scanned_titles = {sm.title for sm in scanned}
+    # Soft-delete movies no longer on disk (match by id, robust to title changes)
+    seen_ids = {r["movie_id"] for r in results if r.get("movie_id")}
     all_movies = await db.execute(select(Movie).where(Movie.deleted == False))  # noqa: E712
     deleted_count = 0
     for m in all_movies.scalars().all():
-        if m.title not in scanned_titles:
+        if m.id not in seen_ids:
             m.deleted = True
             deleted_count += 1
     if deleted_count:
@@ -48,11 +48,13 @@ async def sync_movies(db: AsyncSession) -> dict[str, Any]:
 
     created = sum(1 for r in results if r.get("status") == "created")
     updated = sum(1 for r in results if r.get("status") == "updated")
+    skipped = sum(1 for r in results if r.get("status") == "skipped")
     return {
         "status": "ok",
         "movies_synced": len(results),
         "created": created,
         "updated": updated,
+        "skipped": skipped,
         "deleted": deleted_count,
         "movies": results,
     }
@@ -71,6 +73,22 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
     first_aired: str | None = None
     runtime: int | None = None
     imdb_id: str | None = None
+
+    # Skip the API if this movie is already enriched.
+    conditions = [Movie.title == sm.title]
+    if sm.tmdb_id:
+        conditions.append(Movie.tmdb_id == sm.tmdb_id)
+    existing = await db.execute(select(Movie).where(or_(*conditions)))
+    existing_movie = existing.scalar_one_or_none()
+    if existing_movie and existing_movie.overview and existing_movie.first_aired:
+        if existing_movie.deleted:
+            existing_movie.deleted = False
+            await db.commit()
+        return {
+            "title": sm.title,
+            "movie_id": existing_movie.id,
+            "status": "skipped",
+        }
 
     # Try TMDB search
     try:
