@@ -317,6 +317,8 @@
                 }
             }
 
+            var expandedSeasons = {};
+
             function highlightEpisode() {
                 var params = new URLSearchParams(window.location.search);
                 var epId = params.get('episode');
@@ -329,6 +331,8 @@
                     if (body) body.style.display = 'block';
                     var chevron = seasonCard.querySelector('.season-chevron');
                     if (chevron) chevron.textContent = '▾';
+                    var seasonNum = seasonCard.getAttribute('data-season-number');
+                    if (seasonNum) expandedSeasons[seasonNum] = true;
                 }
                 li.style.outline = '2px solid var(--accent)';
                 li.style.background = 'rgba(233,69,96,0.08)';
@@ -347,8 +351,10 @@
                             (ep.watched_at?'<span style="color:var(--accent);font-size:0.65rem;cursor:pointer;text-decoration:underline;" onclick="openCalendar('+ep.id+',event)" title="Change watched date">('+formatDateLong(ep.watched_at.substring(0,10))+')</span>':'')+
                             '<span class="badge '+(ep.watched?'badge-watched':'badge-unwatched')+'" onclick="toggleEp('+ep.id+','+ep.watched+',event)" style="cursor:pointer;">'+(ep.watched?'✓ watched':'unwatched')+'</span></span></li>';
                     }).join('');
-                    var collapsed = idx !== 0; // first season expanded, rest collapsed
-                    return '<div class="season-card" style="border:1px solid var(--border);border-radius:6px;padding:0.5rem 0.75rem;margin-bottom:0.5rem;">' +
+                    var collapsed = (expandedSeasons[season.season_number] !== undefined)
+                        ? !expandedSeasons[season.season_number]
+                        : (idx !== 0); // first season expanded, rest collapsed
+                    return '<div class="season-card" data-season-number="'+season.season_number+'" style="border:1px solid var(--border);border-radius:6px;padding:0.5rem 0.75rem;margin-bottom:0.5rem;">' +
                         '<div class="season-header" onclick="toggleSeason(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">' +
                         '<span style="font-weight:600;display:flex;align-items:center;">'+
                         (season.poster_path ? '<img class="season-poster" src="'+season.poster_path+'" onerror="this.style.display=\'none\'">' : '')+
@@ -417,6 +423,8 @@
                     var chevron = card.querySelector('.season-chevron');
                     body.style.display = expand ? 'block' : 'none';
                     chevron.textContent = expand ? '▾' : '▸';
+                    var seasonNum = card.getAttribute('data-season-number');
+                    if (seasonNum) expandedSeasons[seasonNum] = expand;
                 });
             }
 
@@ -427,6 +435,8 @@
                 var isHidden = body.style.display === 'none';
                 body.style.display = isHidden ? 'block' : 'none';
                 chevron.textContent = isHidden ? '▾' : '▸';
+                var seasonNum = card.getAttribute('data-season-number');
+                if (seasonNum) expandedSeasons[seasonNum] = isHidden;
             }
 
             function editNotes(ev) {
