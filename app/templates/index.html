@@ -162,6 +162,22 @@
                 border-color: var(--accent);
                 font-weight: 700;
             }
+            .filter-count {
+                display: inline-block;
+                min-width: 1.1rem;
+                text-align: center;
+                background: var(--border);
+                color: var(--text-muted);
+                border-radius: 10px;
+                padding: 0 0.35rem;
+                font-size: 0.7rem;
+                margin-left: 0.3rem;
+                font-weight: 600;
+            }
+            .filter-btn.active .filter-count {
+                background: var(--accent);
+                color: #fff;
+            }
             .page-nav {
                 display: flex;
                 gap: 0.25rem;
@@ -505,45 +521,52 @@
                     </div>
                     <button
                         class="filter-btn active"
+                        data-filter="all"
                         onclick="setShowFilter('all', this)"
                     >
-                        All
+                        All <span class="filter-count"></span>
                     </button>
                     <button
                         class="filter-btn"
+                        data-filter="watched"
                         onclick="setShowFilter('watched', this)"
                     >
-                        ✓ Watched
+                        ✓ Watched <span class="filter-count"></span>
                     </button>
                     <button
                         class="filter-btn"
+                        data-filter="partial"
                         onclick="setShowFilter('partial', this)"
                     >
-                        ◐ Partial
+                        ◐ Partial <span class="filter-count"></span>
                     </button>
                     <button
                         class="filter-btn"
+                        data-filter="unwatched"
                         onclick="setShowFilter('unwatched', this)"
                     >
-                        ○ Unwatched
+                        ○ Unwatched <span class="filter-count"></span>
                     </button>
                     <button
                         class="filter-btn"
+                        data-filter="hidden"
                         onclick="setShowFilter('hidden', this)"
                     >
-                        👁 Hidden
+                        👁 Hidden <span class="filter-count"></span>
                     </button>
                     <button
                         class="filter-btn"
+                        data-filter="watchlist"
                         onclick="setShowFilter('watchlist', this)"
                     >
-                        ★ Watchlist
+                        ★ Watchlist <span class="filter-count"></span>
                     </button>
                     <button
                         class="filter-btn"
+                        data-filter="ended"
                         onclick="setShowFilter('ended', this)"
                     >
-                        ⏹ Ended
+                        ⏹ Ended <span class="filter-count"></span>
                     </button>
                     <select
                         id="shows-sort"
@@ -680,27 +703,31 @@
                     </div>
                     <button
                         class="filter-btn active"
+                        data-filter="all"
                         onclick="setMovieFilter('all', this)"
                     >
-                        All
+                        All <span class="filter-count"></span>
                     </button>
                     <button
                         class="filter-btn"
+                        data-filter="watched"
                         onclick="setMovieFilter('watched', this)"
                     >
-                        ✓ Watched
+                        ✓ Watched <span class="filter-count"></span>
                     </button>
                     <button
                         class="filter-btn"
+                        data-filter="unwatched"
                         onclick="setMovieFilter('unwatched', this)"
                     >
-                        ○ Unwatched
+                        ○ Unwatched <span class="filter-count"></span>
                     </button>
                     <button
                         class="filter-btn"
+                        data-filter="watchlist"
                         onclick="setMovieFilter('watchlist', this)"
                     >
-                        ★ Watchlist
+                        ★ Watchlist <span class="filter-count"></span>
                     </button>
                     <select
                         id="movies-sort"
@@ -1052,7 +1079,7 @@
                     .querySelectorAll("#page-shows .filter-btn")
                     .forEach(function (b) {
                         b.classList.remove("active");
-                        if (b.textContent.trim() === "All") {
+                        if (b.getAttribute("data-filter") === "all") {
                             b.classList.add("active");
                         }
                     });
@@ -1071,8 +1098,43 @@
                 if (s) s.style.display = "none";
                 if (c) c.style.display = "";
             }
+            function updateShowFilterCounts() {
+                var counts = {
+                    all: allShows.filter(function (s) {
+                        return s.hidden !== true;
+                    }).length,
+                    watched: allShows.filter(function (s) {
+                        return s.part_watched === "watched";
+                    }).length,
+                    partial: allShows.filter(function (s) {
+                        return s.part_watched === "partial";
+                    }).length,
+                    unwatched: allShows.filter(function (s) {
+                        return s.part_watched === "unwatched";
+                    }).length,
+                    hidden: allShows.filter(function (s) {
+                        return s.hidden === true;
+                    }).length,
+                    watchlist: allShows.filter(function (s) {
+                        return s.watchlist === true;
+                    }).length,
+                    ended: allShows.filter(function (s) {
+                        return s.ended === true;
+                    }).length,
+                };
+                document
+                    .querySelectorAll("#page-shows .filter-btn")
+                    .forEach(function (b) {
+                        var key = b.getAttribute("data-filter");
+                        var span = b.querySelector(".filter-count");
+                        if (span && counts[key] !== undefined) {
+                            span.textContent = counts[key];
+                        }
+                    });
+            }
             function applyShowFilters() {
                 restoreShowsHeader();
+                updateShowFilterCounts();
                 showSearch = document
                     .getElementById("shows-search")
                     .value.toLowerCase();
@@ -1165,7 +1227,15 @@
                 }).length;
 
                 var sort = document.getElementById("shows-sort").value;
-                if (sort === "recent")
+                if (airedFilter && airedFilter !== "all" && sort === "alpha") {
+                    if (airedFilter === "upcoming") {
+                        filtered = filtered.slice().sort(compareFirstAired);
+                    } else {
+                        filtered = filtered.slice().sort(function (a, b) {
+                            return -compareFirstAired(a, b);
+                        });
+                    }
+                } else if (sort === "recent")
                     filtered = filtered.slice().sort(function (a, b) {
                         return new Date(b.updated_at) - new Date(a.updated_at);
                     });
@@ -1669,13 +1739,37 @@
                     .querySelectorAll("#page-movies .filter-btn")
                     .forEach(function (b) {
                         b.classList.remove("active");
-                        if (b.textContent.trim() === "All") {
+                        if (b.getAttribute("data-filter") === "all") {
                             b.classList.add("active");
                         }
                     });
                 applyMovieFilters();
             }
+            function updateMovieFilterCounts() {
+                var counts = {
+                    all: allMovies.length,
+                    watched: allMovies.filter(function (m) {
+                        return m.watched;
+                    }).length,
+                    unwatched: allMovies.filter(function (m) {
+                        return !m.watched;
+                    }).length,
+                    watchlist: allMovies.filter(function (m) {
+                        return m.watchlist === true;
+                    }).length,
+                };
+                document
+                    .querySelectorAll("#page-movies .filter-btn")
+                    .forEach(function (b) {
+                        var key = b.getAttribute("data-filter");
+                        var span = b.querySelector(".filter-count");
+                        if (span && counts[key] !== undefined) {
+                            span.textContent = counts[key];
+                        }
+                    });
+            }
             function applyMovieFilters() {
+                updateMovieFilterCounts();
                 movieSearch = document
                     .getElementById("movies-search")
                     .value.toLowerCase();
@@ -1716,7 +1810,15 @@
                     });
                 }
                 var sort = document.getElementById("movies-sort").value;
-                if (sort === "recent")
+                if (airedFilter && airedFilter !== "all" && sort === "alpha") {
+                    if (airedFilter === "upcoming") {
+                        filtered = filtered.slice().sort(compareFirstAired);
+                    } else {
+                        filtered = filtered.slice().sort(function (a, b) {
+                            return -compareFirstAired(a, b);
+                        });
+                    }
+                } else if (sort === "recent")
                     filtered = filtered.slice().sort(function (a, b) {
                         return new Date(b.updated_at) - new Date(a.updated_at);
                     });
@@ -2136,19 +2238,10 @@
                         b.classList.remove("active");
                     });
                 // Set the active filter button based on showFilter
-                var filterLabels = {
-                    all: "All",
-                    watched: "✓ Watched",
-                    partial: "◐ Partial",
-                    unwatched: "○ Unwatched",
-                    hidden: "👁 Hidden",
-                    watchlist: "★ Watchlist",
-                    ended: "⏹ Ended",
-                };
                 document
                     .querySelectorAll("#page-shows .filter-btn")
                     .forEach(function (b) {
-                        if (b.textContent.trim() === filterLabels[showFilter]) {
+                        if (b.getAttribute("data-filter") === showFilter) {
                             b.classList.add("active");
                         }
                     });
