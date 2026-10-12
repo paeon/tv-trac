@@ -160,6 +160,7 @@
                 background: var(--accent);
                 color: #fff;
                 border-color: var(--accent);
+                font-weight: 700;
             }
             .page-nav {
                 display: flex;
@@ -1359,6 +1360,11 @@
                                 : '<div class="grid-poster"></div>') +
                             '<div class="grid-title">' +
                             escapeHtml(s.title) +
+                            (s.first_aired &&
+                            s.title.indexOf(s.first_aired.substring(0, 4)) ===
+                                -1
+                                ? " (" + s.first_aired.substring(0, 4) + ")"
+                                : "") +
                             (s.watchlist
                                 ? ' <span style="background:#f1c40f;color:#000;font-size:0.6rem;padding:0 0.3rem;border-radius:3px;font-weight:bold;vertical-align:middle;" title="On Watchlist">WL</span>'
                                 : "") +
@@ -1768,6 +1774,11 @@
                                 : '<div class="grid-poster"></div>') +
                             '<div class="grid-title">' +
                             escapeHtml(m.title) +
+                            (m.first_aired &&
+                            m.title.indexOf(m.first_aired.substring(0, 4)) ===
+                                -1
+                                ? " (" + m.first_aired.substring(0, 4) + ")"
+                                : "") +
                             (m.watchlist
                                 ? ' <span style="background:#f1c40f;color:#000;font-size:0.6rem;padding:0 0.3rem;border-radius:3px;font-weight:bold;">WL</span>'
                                 : "") +
