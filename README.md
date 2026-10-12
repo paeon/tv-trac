@@ -69,8 +69,8 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 - **Three pages** — Shows, Movies, and Recently Aired Episodes.
 - **Grid (default) and list views**, toggleable, with larger poster-centric grid cards.
 - **Search-as-you-type** on all pages (with a clear-field button).
-- **Filters** — status, watchlist, hidden, ended, rating (1–5 stars), first-aired/release-date (Upcoming, Last month, Last six months, 1/3/5/10 years, and older), and a "New Content" filter (days since added).
-- **Sorting** — A–Z, Z–A, Recently Added, First Aired (newest/oldest), Rating (high/low).
+- **Filters** — status, watchlist, hidden, ended, rating (1–5 stars), first-aired/release-date (Upcoming, Last month, Last six months, 1/3/5/10 years, and older), and a "New Content" filter (days since added). Each filter button shows a live **count** of how many items it would return, visible even when inactive.
+- **Sorting** — A–Z, Z–A, Recently Added, First Aired (newest/oldest), Rating (high/low). When a first-aired/release-date filter is active (and no explicit sort is chosen), results are listed **by date** (soonest first for Upcoming, newest first otherwise).
 - **Pagination** — 10 / 25 / 50 / 100 items per page.
 - **Recently Aired Episodes** — a dedicated page listing episodes across all shows, with a toggle between **Recently Aired** (by air date, the default) and **Recently Added** (by when the episode was scanned in), an "Added in" date filter (last 1/3/7/30 days), a "Show" depth selector (last 10/20/30/50/100/200/500/All), pagination, search, hide-watched, hidden-show detection, and deep links back to the show/season/episode.
 - **Per-show stats** — each show card shows season counts (available · watched · missing) and episode counts (available · watched · missing) at a glance, with missing highlighted, plus the date it was added.
