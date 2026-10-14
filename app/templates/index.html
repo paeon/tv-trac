@@ -567,7 +567,7 @@
                         data-filter="ended"
                         onclick="setShowFilter('ended', this)"
                     >
-                        ⏹ Ended <span class="filter-count"></span>
+                        ◼ Ended <span class="filter-count"></span>
                     </button>
                     <button
                         class="filter-btn"
@@ -1225,6 +1225,7 @@
                 var endedShows = allShows.filter(function (s) {
                     return s.ended === true;
                 }).length;
+                var continuingShows = totalShows - endedShows;
 
                 // Search-matched subset (before status/hidden filtering)
                 var searchMatches = allShows;
@@ -1240,6 +1241,7 @@
                 var searchEnded = searchMatches.filter(function (s) {
                     return s.ended === true;
                 }).length;
+                var searchContinuing = searchMatches.length - searchEnded;
 
                 var sort = document.getElementById("shows-sort").value;
                 if (airedFilter && airedFilter !== "all" && sort === "alpha") {
@@ -1284,7 +1286,10 @@
                         searchHidden +
                         " · " +
                         "Ended: " +
-                        searchEnded;
+                        searchEnded +
+                        " · " +
+                        "Continuing: " +
+                        searchContinuing;
                 } else {
                     document.getElementById("show-count").innerHTML =
                         "Total: <strong>" +
@@ -1297,7 +1302,10 @@
                         hiddenShows +
                         " · " +
                         "Ended: " +
-                        endedShows;
+                        endedShows +
+                        " · " +
+                        "Continuing: " +
+                        continuingShows;
                 }
                 // Paginate
                 showCurrentPage = Math.min(
@@ -2046,8 +2054,21 @@
                 btn.textContent = enabled ? "🔍 Scan" : "🔍 Scanning…";
             }
 
+            function resetShowFilter() {
+                showFilter = "all";
+                document
+                    .querySelectorAll("#page-shows .filter-btn")
+                    .forEach(function (b) {
+                        b.classList.remove("active");
+                        if (b.getAttribute("data-filter") === "all") {
+                            b.classList.add("active");
+                        }
+                    });
+            }
+
             async function scanMedia() {
                 setScanEnabled(false);
+                resetShowFilter();
                 // Switch to the Shows page so results are visible
                 document.querySelectorAll("nav a").forEach(function (a) {
                     a.classList.remove("active");
@@ -2196,6 +2217,7 @@
 
             // ── CHECK MISSING ────────────────────────────────────────────────
             async function checkMissing() {
+                resetShowFilter();
                 // Force list view so the results render correctly (grid layout breaks them)
                 showViewMode = "list";
                 document.getElementById("show-view-toggle").textContent = "▦ Grid";
