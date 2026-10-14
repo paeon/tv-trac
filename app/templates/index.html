@@ -1226,6 +1226,9 @@
                     return s.ended === true;
                 }).length;
                 var continuingShows = totalShows - endedShows;
+                var watchlistShows = allShows.filter(function (s) {
+                    return s.watchlist === true;
+                }).length;
 
                 // Search-matched subset (before status/hidden filtering)
                 var searchMatches = allShows;
@@ -1242,6 +1245,9 @@
                     return s.ended === true;
                 }).length;
                 var searchContinuing = searchMatches.length - searchEnded;
+                var searchWatchlist = searchMatches.filter(function (s) {
+                    return s.watchlist === true;
+                }).length;
 
                 var sort = document.getElementById("shows-sort").value;
                 if (airedFilter && airedFilter !== "all" && sort === "alpha") {
@@ -1289,7 +1295,10 @@
                         searchEnded +
                         " · " +
                         "Continuing: " +
-                        searchContinuing;
+                        searchContinuing +
+                        " · " +
+                        "Watchlist: " +
+                        searchWatchlist;
                 } else {
                     document.getElementById("show-count").innerHTML =
                         "Total: <strong>" +
@@ -1305,7 +1314,10 @@
                         endedShows +
                         " · " +
                         "Continuing: " +
-                        continuingShows;
+                        continuingShows +
+                        " · " +
+                        "Watchlist: " +
+                        watchlistShows;
                 }
                 // Paginate
                 showCurrentPage = Math.min(
