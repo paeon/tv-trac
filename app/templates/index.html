@@ -452,6 +452,7 @@
                     "
                 >← 960px →</button>
                 <button
+                    id="scan-btn"
                     onclick="scanMedia()"
                     style="
                         background: var(--accent);
@@ -567,6 +568,13 @@
                         onclick="setShowFilter('ended', this)"
                     >
                         ⏹ Ended <span class="filter-count"></span>
+                    </button>
+                    <button
+                        class="filter-btn"
+                        data-filter="continuing"
+                        onclick="setShowFilter('continuing', this)"
+                    >
+                        ▶ Continuing <span class="filter-count"></span>
                     </button>
                     <select
                         id="shows-sort"
@@ -1121,6 +1129,9 @@
                     ended: allShows.filter(function (s) {
                         return s.ended === true;
                     }).length,
+                    continuing: allShows.filter(function (s) {
+                        return s.ended !== true;
+                    }).length,
                 };
                 document
                     .querySelectorAll("#page-shows .filter-btn")
@@ -1168,6 +1179,10 @@
                 else if (showFilter === "ended")
                     filtered = filtered.filter(function (s) {
                         return s.ended === true;
+                    });
+                else if (showFilter === "continuing")
+                    filtered = filtered.filter(function (s) {
+                        return s.ended !== true;
                     });
                 else if (!showSearch)
                     // Default: exclude hidden, unless searching (then surface them)
@@ -2022,7 +2037,17 @@
             }
 
             // ── SCAN ───────────────────────────────────────────────────────
+            function setScanEnabled(enabled) {
+                var btn = document.getElementById("scan-btn");
+                if (!btn) return;
+                btn.disabled = !enabled;
+                btn.style.opacity = enabled ? "" : "0.5";
+                btn.style.cursor = enabled ? "" : "not-allowed";
+                btn.textContent = enabled ? "🔍 Scan" : "🔍 Scanning…";
+            }
+
             async function scanMedia() {
+                setScanEnabled(false);
                 // Switch to the Shows page so results are visible
                 document.querySelectorAll("nav a").forEach(function (a) {
                     a.classList.remove("active");
@@ -2150,6 +2175,7 @@
                     // when its cache is empty, so it would otherwise show stale
                     // results until the browser is refreshed.
                     await fetchMovies();
+                    setScanEnabled(true);
                 } catch (e) {
                     clearInterval(timer);
                     restoreShowsHeader();
@@ -2164,6 +2190,7 @@
                             escapeHtml(e.message) +
                             "</p>";
                     }
+                    setScanEnabled(true);
                 }
             }
 

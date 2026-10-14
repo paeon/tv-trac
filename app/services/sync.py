@@ -158,6 +158,7 @@ async def _sync_one_show(
     tvdb_first_aired: str | None = None
     tvdb_slug: str | None = None
     tvdb_imdb_id: str | None = None
+    tvdb_status: str | None = None
     tvdb_seasons: dict[int, int] = {}  # season_number -> tvdb_season_id
 
     if tvdb_available:
@@ -217,6 +218,8 @@ async def _sync_one_show(
             # Prefer Aired Order / official seasons over alternate orders
             if extended:
                 tvdb_imdb_id = _extract_imdb_id(extended)
+                status = extended.get("status") or {}
+                tvdb_status = status.get("name")
                 for s in extended.get("seasons") or []:
                     sn = s.get("number")
                     sid = s.get("id")
@@ -247,6 +250,7 @@ async def _sync_one_show(
             first_aired=tvdb_first_aired,
             tvdb_slug=tvdb_slug,
             imdb_id=tvdb_imdb_id,
+            ended=(tvdb_status == "Ended"),
         )
         db.add(show)
         await db.flush()
@@ -264,6 +268,8 @@ async def _sync_one_show(
             show.tvdb_slug = tvdb_slug
         if tvdb_imdb_id and not show.imdb_id:
             show.imdb_id = tvdb_imdb_id
+        if tvdb_status == "Ended" and not show.ended:
+            show.ended = True
 
     # Prefer local artwork, then fall back to the API
     if scanned_show.poster_path:
