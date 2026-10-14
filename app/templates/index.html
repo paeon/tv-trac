@@ -2201,10 +2201,24 @@
                 document.getElementById("show-view-toggle").textContent = "▦ Grid";
                 var el = document.getElementById("shows-list");
                 el.className = "";
+
+                // Count-up timer so the user can see the check is still running
+                var seconds = 0;
+                var timerEl = document.createElement("p");
+                timerEl.style.color = "var(--accent)";
+                timerEl.style.fontWeight = "bold";
+                timerEl.textContent = "Elapsed: 0s";
+                var timer = setInterval(function () {
+                    seconds++;
+                    timerEl.textContent = "Elapsed: " + seconds + "s";
+                }, 1000);
+
                 el.innerHTML =
                     '<p class="loading">Checking TheTVDB for missing episodes...</p>';
+                el.appendChild(timerEl);
                 try {
                     var data = await apiFetch("/api/scan/check-missing?store=true");
+                    clearInterval(timer);
                     if (data.status === "offline") {
                         el.innerHTML =
                             '<p class="error">' +
@@ -2245,6 +2259,7 @@
                     }
                     el.innerHTML = html;
                 } catch (e) {
+                    clearInterval(timer);
                     el.innerHTML =
                         '<p class="error">Check failed: ' +
                         escapeHtml(e.message) +
