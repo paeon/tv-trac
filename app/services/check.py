@@ -16,14 +16,20 @@ from app.services.tvdb import tvdb
 logger = logging.getLogger(__name__)
 
 
-async def check_missing(db: AsyncSession, store: bool = False) -> dict[str, Any]:
+async def check_missing(
+    db: AsyncSession, store: bool = False, show_ids: list[int] | None = None
+) -> dict[str, Any]:
     """For each show, compare local episodes against TheTVDB and report gaps.
 
     If `store` is True, also persist the results to the Show records.
+    `show_ids` optionally restricts the check to a subset of shows.
     """
 
     result = await db.execute(select(Show).where(Show.deleted == False))  # noqa: E712
     shows = result.scalars().all()
+    if show_ids is not None:
+        ids = set(show_ids)
+        shows = [s for s in shows if s.id in ids]
 
     tvdb_available = False
     try:
@@ -37,20 +43,6 @@ async def check_missing(db: AsyncSession, store: bool = False) -> dict[str, Any]
 
     report = []
     for show in shows:
-        if show.ended:
-            if store:
-                show.missing_count = 0
-                show.missing_details = None
-                show.missing_season_count = 0
-            report.append(
-                {
-                    "title": show.title,
-                    "status": "ended",
-                    "message": "Marked as ended — skipping",
-                }
-            )
-            continue
-
         if not show.tvdb_id:
             if store:
                 show.missing_count = 0

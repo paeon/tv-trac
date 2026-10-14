@@ -62,14 +62,14 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 - **Watchlist** — toggle shows/movies onto a watchlist, with a quick filter and a `WL` badge.
 - **Star ratings** — 0–5 stars per show/movie, with per-rating filters and high/low sorting.
 - **Hide/unhide** — keep a show/movie in the database but hide it from the main listings (e.g. dropped shows).
-- **Ended flag** — mark a show as ended (no more seasons/episodes expected); ended shows are skipped by the missing-episode check.
+- **Ended flag** — auto-set from TheTVDB's show `status` (and also settable manually). The **Ended** and **Continuing** filters show the count and let you filter by status. Ended shows still have their missing seasons/episodes reported.
 
 ### UI & browsing
 
 - **Three pages** — Shows, Movies, and Recently Aired Episodes.
 - **Grid (default) and list views**, toggleable, with larger poster-centric grid cards.
 - **Search-as-you-type** on all pages (with a clear-field button).
-- **Filters** — status, watchlist, hidden, ended, rating (1–5 stars), first-aired/release-date (Upcoming, Last month, Last six months, 1/3/5/10 years, and older), and a "New Content" filter (days since added). Each filter button shows a live **count** of how many items it would return, visible even when inactive.
+- **Filters** — status (watched/partial/unwatched), watchlist, hidden, ended, continuing, rating (1–5 stars), first-aired/release-date (Upcoming, Last month, Last six months, 1/3/5/10 years, and older), and a "New Content" filter (days since added). Each filter button shows a live **count** of how many items it would return, visible even when inactive.
 - **Sorting** — A–Z, Z–A, Recently Added, First Aired (newest/oldest), Rating (high/low). When a first-aired/release-date filter is active (and no explicit sort is chosen), results are listed **by date** (soonest first for Upcoming, newest first otherwise).
 - **Pagination** — 10 / 25 / 50 / 100 items per page.
 - **Recently Aired Episodes** — a dedicated page listing episodes across all shows, with a toggle between **Recently Aired** (by air date, the default) and **Recently Added** (by when the episode was scanned in), an "Added in" date filter (last 1/3/7/30 days), a "Show" depth selector (last 10/20/30/50/100/200/500/All), pagination, search, hide-watched, hidden-show detection, and deep links back to the show/season/episode.
@@ -93,7 +93,7 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 
 Scans are **incremental**: items that already have their metadata and whose seasons/episodes are already in the database are **skipped** on subsequent scans (the API is only hit for new or changed items). The first scan is the slow one; later scans are much faster.
 
-The scan is triggered from the **🔍 Scan** button (scans TV then movies), and the **⚠️ Check Missing** button re-checks the TV library against TheTVDB for missing seasons/episodes. The missing-episode check is **on-demand** (it is no longer run automatically after a scan, since it re-queries the whole library).
+The scan is triggered from the **🔍 Scan** button (scans TV then movies). After a scan, the missing-episode check runs automatically for any **newly-created or updated** shows; the **⚠️ Check Missing** button re-checks the entire TV library against TheTVDB for missing seasons/episodes (including ended shows).
 
 ---
 
@@ -229,7 +229,7 @@ ln -s docker-compose.yml compose.yaml
 | **Shows** | Search, filter, sort, switch grid/list, mark watched status, add notes, rate, watchlist, hide/unhide, mark ended, open the detail page |
 | **Movies** | Same as shows, but for movies |
 | **Recently Aired Episodes** | Toggle between Recently Aired (default) and Recently Added, filter by "added in" date range, set the list depth (last N), search, sort, hide watched, paginate, and jump to a show/season/episode |
-| **Show detail** | Poster, overview, IMDb/TVDB links, notes, rating, watchlist/hide/ended toggles, first-aired + added dates, collapsible seasons, per-episode watched + calendar dates |
+| **Show detail** | Poster, overview, IMDb/TVDB links, notes, rating, watchlist/hide/ended toggles, first-aired + last-aired/ended + added dates, collapsible seasons, per-episode watched + calendar dates |
 | **Movie detail** | Poster, overview, IMDb/TMDB links, notes, rating, watchlist/hide toggles, released + added dates, watched + calendar date |
 
 **Common actions:**
