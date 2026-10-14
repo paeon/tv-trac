@@ -373,11 +373,14 @@
                         '<h2>'+escapeHtml(show.title)+' <span class="year">('+ (show.first_aired ? show.first_aired.substring(0,4) : '') +')</span></h2>' +
                         '<span class="badge '+watchBadgeClass(show.part_watched)+'">'+watchBadgeLabel(show.part_watched)+'</span>' +
                         (show.ended ? ' <span class="badge" style="background:#e0e4e8;color:#5b6472;font-size:0.7rem;" title="Marked as ended — no more seasons/episodes">ended</span>' : '') +
-                        ((show.first_aired || show.created_at)
+                        ((show.first_aired || show.last_aired || show.created_at)
                             ? '<div class="meta">' +
                                 (show.first_aired ? 'First aired: ' + formatDateLong(show.first_aired) : '') +
-                                (show.first_aired && show.created_at ? ' &nbsp;·&nbsp; ' : '') +
-                                (show.created_at ? 'Date added: ' + formatDateLong(show.created_at.substring(0, 10)) : '') +
+                                (show.first_aired && show.last_aired ? ' - ' : '') +
+                                (show.last_aired
+                                    ? (show.ended ? 'Ended ' : 'Last aired ') + formatDateLong(show.last_aired)
+                                    : '') +
+                                (show.created_at ? ' &nbsp;·&nbsp; Date added: ' + formatDateLong(show.created_at.substring(0, 10)) : '') +
                               '</div>'
                             : '') +
                         '<div class="meta" style="display:flex;gap:0.5rem;flex-wrap:wrap;">' +

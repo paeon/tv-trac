@@ -74,6 +74,7 @@ class ShowOut(BaseModel):
     overview: str | None
     poster_path: str | None
     first_aired: str | None
+    last_aired: str | None
     notes: str | None
     imdb_id: str | None
     missing_count: int

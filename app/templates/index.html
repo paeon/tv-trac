@@ -2204,7 +2204,7 @@
                 el.innerHTML =
                     '<p class="loading">Checking TheTVDB for missing episodes...</p>';
                 try {
-                    var data = await apiFetch("/api/scan/check-missing");
+                    var data = await apiFetch("/api/scan/check-missing?store=true");
                     if (data.status === "offline") {
                         el.innerHTML =
                             '<p class="error">' +

@@ -46,3 +46,10 @@ async def _migrate(conn) -> None:
                 "'1970-01-01 00:00:00')"
             )
         )
+
+    result = await conn.execute(text("PRAGMA table_info(shows)"))
+    columns = [row[1] for row in result.fetchall()]
+    if "last_aired" not in columns:
+        await conn.execute(
+            text("ALTER TABLE shows ADD COLUMN last_aired VARCHAR(50)")
+        )

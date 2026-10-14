@@ -26,6 +26,7 @@ class Show(Base):
     overview: Mapped[str | None] = mapped_column(Text, nullable=True)
     poster_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     first_aired: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    last_aired: Mapped[str | None] = mapped_column(String(50), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     imdb_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
     missing_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

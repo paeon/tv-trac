@@ -94,6 +94,14 @@ async def _check_one_show(db: AsyncSession, show: Show) -> dict[str, Any]:
     """Check a single show against TVDB."""
     extended = await tvdb.get_show_extended(show.tvdb_id)
 
+    # Auto-set the ended flag and last-aired date from TVDB.
+    status = extended.get("status") or {}
+    if status.get("name") == "Ended":
+        show.ended = True
+    last_aired = extended.get("lastAired") or extended.get("last_aired")
+    if last_aired:
+        show.last_aired = last_aired
+
     # Build tvdb season map (prefer official)
     tvdb_seasons: dict[int, int] = {}
     for s in extended.get("seasons") or []:
