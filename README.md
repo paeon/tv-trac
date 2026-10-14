@@ -234,8 +234,8 @@ ln -s docker-compose.yml compose.yaml
 
 **Common actions:**
 
-- **Scan** — the `🔍 Scan` button in the header scans TV shows then movies, with a live "Scanning shows… / Scanning movies…" status, an elapsed timer, and a **Cancel scan** button. The page header switches to "Scanning shows and movies…" during the scan and is restored on refresh.
-- **Check Missing** — the `⚠️ Check Missing` button re-checks TV shows against TheTVDB and flags missing seasons/episodes.
+- **Scan** — the `🔍 Scan` button in the header scans TV shows then movies, with a live "Scanning shows… / Scanning movies…" status, an elapsed timer, and a **Cancel scan** button. The button is disabled while scanning, and the status filter resets to All. The page header switches to "Scanning shows and movies…" during the scan and is restored on refresh.
+- **Check Missing** — the `⚠️ Check Missing` button re-checks TV shows against TheTVDB (with an elapsed timer), flags missing seasons/episodes, and persists the results. It also backfills the `ended` flag and `last_aired` date from TheTVDB.
 - **Mark watched** — click an episode/movie watched badge; use the calendar link to set a custom date.
 - **Change date/time format** — click the flag button in the header to switch between Default, US, UK, and ISO formats.
 - **Change content width** — click the `← 960px →` button in the header to cycle between Normal, Wide, and Full widths.
@@ -252,7 +252,7 @@ The data model:
 
 | Table | Key fields |
 |---|---|
-| `shows` | `title`, `tvdb_id`, `tvdb_slug`, `overview`, `poster_path`, `first_aired`, `notes`, `imdb_id`, `missing_count`, `missing_details`, `missing_season_count`, `ended`, `hidden`, `watchlist`, `rating`, `part_watched`, `deleted`, `created_at`, `updated_at` |
+| `shows` | `title`, `tvdb_id`, `tvdb_slug`, `overview`, `poster_path`, `first_aired`, `last_aired`, `notes`, `imdb_id`, `missing_count`, `missing_details`, `missing_season_count`, `ended`, `hidden`, `watchlist`, `rating`, `part_watched`, `deleted`, `created_at`, `updated_at` |
 | `seasons` | `show_id`, `season_number`, `poster_path`, `part_watched`, `created_at` |
 | `episodes` | `season_id`, `episode_number`, `title`, `overview`, `air_date`, `runtime`, `watched`, `watched_at`, `file_path`, `image_path`, `created_at` |
 | `movies` | `title`, `tmdb_id`, `overview`, `poster_path`, `first_aired`, `runtime`, `notes`, `imdb_id`, `hidden`, `watchlist`, `rating`, `watched`, `watched_at`, `file_path`, `deleted`, `created_at`, `updated_at` |
