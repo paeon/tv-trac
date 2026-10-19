@@ -664,7 +664,7 @@
                     </select>
                     <select
                         id="shows-group-filter"
-                        onchange="applyShowFilters()"
+                        onchange="onGroupFilterChange('shows')"
                         style="
                             background: var(--surface);
                             color: var(--text);
@@ -676,22 +676,6 @@
                     >
                         <option value="">All Groups</option>
                     </select>
-                    <button
-                        class="filter-btn"
-                        onclick="openNewGroupPopover('shows', event)"
-                        title="Create a new group"
-                        style="padding:0.4rem 0.55rem"
-                    >
-                        ＋
-                    </button>
-                    <button
-                        class="filter-btn"
-                        onclick="openDeleteGroupPopover(event)"
-                        title="Delete empty groups"
-                        style="padding:0.4rem 0.55rem"
-                    >
-                        🗑
-                    </button>
                     <button class="filter-btn" onclick="clearAllFilters()">
                         ✕ Clear All
                     </button>
@@ -838,7 +822,7 @@
                     </select>
                     <select
                         id="movies-group-filter"
-                        onchange="applyMovieFilters()"
+                        onchange="onGroupFilterChange('movies')"
                         style="
                             background: var(--surface);
                             color: var(--text);
@@ -850,22 +834,6 @@
                     >
                         <option value="">All Groups</option>
                     </select>
-                    <button
-                        class="filter-btn"
-                        onclick="openNewGroupPopover('movies', event)"
-                        title="Create a new group"
-                        style="padding:0.4rem 0.55rem"
-                    >
-                        ＋
-                    </button>
-                    <button
-                        class="filter-btn"
-                        onclick="openDeleteGroupPopover(event)"
-                        title="Delete empty groups"
-                        style="padding:0.4rem 0.55rem"
-                    >
-                        🗑
-                    </button>
                     <button class="filter-btn" onclick="clearAllMovieFilters()">
                         ✕ Clear All
                     </button>
@@ -956,11 +924,15 @@
 
             function groupOptions(kind, selectedValue) {
                 var options = '<option value="">All Groups</option>';
+                var emptyCount = 0;
                 allGroups.forEach(function (g) {
-                    var count =
-                        kind === "movies"
-                            ? g.movie_count || 0
-                            : g.show_count || 0;
+                    var showCount = g.show_count || 0;
+                    var movieCount = g.movie_count || 0;
+                    if (showCount === 0 && movieCount === 0) {
+                        emptyCount++;
+                        return;
+                    }
+                    var count = kind === "movies" ? movieCount : showCount;
                     var noun =
                         kind === "movies"
                             ? (count === 1 ? "movie" : "movies")
@@ -979,6 +951,12 @@
                         ")" +
                         "</option>";
                 });
+                if (emptyCount > 0) {
+                    options +=
+                        '<option value="__delete_empty__" style="color:var(--accent);">🗑 Delete empty groups (' +
+                        emptyCount +
+                        ")</option>";
+                }
                 return options;
             }
 
@@ -1019,69 +997,22 @@
                 }
             }
 
-            function openNewGroupPopover(kind, ev) {
-                ev.stopPropagation();
-                dismissPopover();
-                var pop = document.createElement("div");
-                pop.className = "popover";
-                pop.id = "new-group-popover";
-                pop.innerHTML =
-                    '<div style="font-size:0.8rem;margin-bottom:0.4rem;font-weight:600;">New group</div>' +
-                    '<input id="new-group-name" type="text" placeholder="Group name" style="width:100%;box-sizing:border-box;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.3rem;font-size:0.8rem;">' +
-                    '<div style="margin-top:0.5rem;display:flex;gap:0.4rem;">' +
-                    '<button onclick="createGroupFromPopover(\'' +
-                    kind +
-                    '\')" style="background:var(--accent);color:#fff;border:none;padding:0.25rem 0.7rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">Create</button>' +
-                    '<button onclick="dismissPopover()" style="background:var(--border);color:var(--text);border:none;padding:0.25rem 0.7rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">Cancel</button>' +
-                    "</div>";
-                document.body.appendChild(pop);
-                activePopover = pop;
-                var rect = ev.target.getBoundingClientRect();
-                var top = rect.bottom + 4;
-                var left = Math.max(8, rect.right - 220);
-                if (top + 120 > window.innerHeight) top = rect.top - 130;
-                pop.style.top = top + "px";
-                pop.style.left = left + "px";
-                var input = document.getElementById("new-group-name");
-                if (input) {
-                    input.focus();
-                    input.addEventListener("keydown", function (e) {
-                        if (e.key === "Enter") createGroupFromPopover(kind);
-                    });
-                }
-            }
-
-            async function createGroupFromPopover(kind) {
-                var input = document.getElementById("new-group-name");
-                var name = input ? input.value.trim() : "";
-                if (!name) {
-                    if (input) input.focus();
+            function onGroupFilterChange(kind) {
+                var sel = document.getElementById(
+                    kind === "movies"
+                        ? "movies-group-filter"
+                        : "shows-group-filter",
+                );
+                if (sel && sel.value === "__delete_empty__") {
+                    sel.value = "";
+                    openDeleteGroupPopover(sel);
                     return;
                 }
-                try {
-                    await apiFetch(GROUPS_API, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name: name }),
-                    });
-                } catch (e) {
-                    var detail = e.body && e.body.detail ? e.body.detail : e.message;
-                    alert("Could not create group: " + detail);
-                    return;
-                }
-                dismissPopover();
-                if (kind === "movies") {
-                    movieGroupFilter = name;
-                } else {
-                    showGroupFilter = name;
-                }
-                await fetchGroups();
                 if (kind === "movies") applyMovieFilters();
                 else applyShowFilters();
             }
 
-            function openDeleteGroupPopover(ev) {
-                ev.stopPropagation();
+            function openDeleteGroupPopover(anchor) {
                 dismissPopover();
                 var empty = allGroups.filter(function (g) {
                     return (
@@ -1114,7 +1045,7 @@
                 pop.innerHTML = html;
                 document.body.appendChild(pop);
                 activePopover = pop;
-                var rect = ev.target.getBoundingClientRect();
+                var rect = anchor.getBoundingClientRect();
                 var top = rect.bottom + 4;
                 var left = Math.max(8, rect.right - 240);
                 if (top + 180 > window.innerHeight) top = rect.top - 180;
