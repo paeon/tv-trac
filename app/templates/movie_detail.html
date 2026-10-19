@@ -220,7 +220,20 @@
 
             function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
+            var allGroups = [];
+            var groupsLoaded = false;
+
+            async function ensureGroups() {
+                if (groupsLoaded) return;
+                try {
+                    var gr = await fetch('/api/groups');
+                    if (gr.ok) allGroups = await gr.json();
+                } catch (e) { allGroups = []; }
+                groupsLoaded = true;
+            }
+
             async function loadDetail() {
+                await ensureGroups();
                 var el = document.getElementById('detail');
                 try {
                     var resp = await fetch('/api/movies/' + MOVIE_ID);
@@ -271,7 +284,74 @@
                             '<button onclick="editNotes(event)" style="background:none;border:1px solid var(--border);color:var(--text);padding:0.15rem 0.6rem;border-radius:4px;font-size:0.7rem;margin-left:0.5rem;cursor:pointer;">' + (m.notes ? 'Edit' : 'Add') + '</button>' +
                         '</div>' +
                         '<div id="notes-display">' + (m.notes ? escapeHtml(m.notes) : '<span style="color:var(--text-muted);font-size:0.8rem;">No notes yet</span>') + '</div>' +
+                    '</div>' +
+                    '<div class="card">' +
+                        '<div style="margin-bottom:0.5rem;"><strong>Groups</strong></div>' +
+                        renderGroupsSection(m) +
                     '</div>';
+            }
+
+            function renderGroupsSection(m) {
+                var current = m.group_names || [];
+                var assigned = allGroups.filter(function (g) { return current.indexOf(g.name) !== -1; });
+                var available = allGroups.filter(function (g) { return current.indexOf(g.name) === -1; });
+                var chips = assigned.map(function (g) {
+                    return '<span style="display:inline-flex;align-items:center;gap:0.35rem;background:var(--border);border-radius:999px;padding:0.15rem 0.6rem;font-size:0.75rem;margin:0 0.3rem 0.3rem 0;">' +
+                        escapeHtml(g.name) +
+                        '<span onclick="removeGroup(' + g.id + ')" style="cursor:pointer;color:var(--text-muted);font-weight:700;" title="Remove from group">×</span>' +
+                    '</span>';
+                }).join('');
+                var addControls = '';
+                if (available.length) {
+                    addControls += '<select id="group-add-select" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.5rem;font-size:0.75rem;">' +
+                        '<option value="">Add to group…</option>' +
+                        available.map(function (g) { return '<option value="' + g.id + '">' + escapeHtml(g.name) + '</option>'; }).join('') +
+                    '</select> ' +
+                    '<button onclick="addGroup()" style="background:var(--accent);color:#fff;border:none;padding:0.3rem 0.8rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">Add</button>';
+                }
+                var newGroup = '<span style="display:inline-flex;align-items:center;gap:0.4rem;">' +
+                    '<input id="new-group-name" type="text" placeholder="New group name" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.5rem;font-size:0.75rem;width:140px;">' +
+                    '<button onclick="createAndAddGroup()" style="background:var(--border);color:var(--text);border:none;padding:0.3rem 0.8rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">Create &amp; add</button>' +
+                '</span>';
+                return (chips || '<span style="color:var(--text-muted);font-size:0.8rem;">No groups yet</span>') +
+                    '<div style="margin-top:0.5rem;display:flex;align-items:center;flex-wrap:wrap;gap:0.4rem;">' + addControls + newGroup + '</div>';
+            }
+
+            async function addGroup() {
+                var sel = document.getElementById('group-add-select');
+                if (!sel || !sel.value) return;
+                await fetch('/api/movies/' + MOVIE_ID + '/groups/' + sel.value, { method: 'POST' });
+                loadDetail();
+            }
+
+            async function removeGroup(groupId) {
+                await fetch('/api/movies/' + MOVIE_ID + '/groups/' + groupId, { method: 'DELETE' });
+                loadDetail();
+            }
+
+            async function createAndAddGroup() {
+                var input = document.getElementById('new-group-name');
+                var name = input ? input.value.trim() : '';
+                if (!name) return;
+                var resp = await fetch('/api/groups', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name }),
+                });
+                var group;
+                if (resp.ok) {
+                    group = await resp.json();
+                } else if (resp.status === 409) {
+                    var all = await (await fetch('/api/groups')).json();
+                    group = all.find(function (g) { return g.name === name; });
+                } else {
+                    alert('Could not create group');
+                    return;
+                }
+                if (!group) return;
+                await fetch('/api/movies/' + MOVIE_ID + '/groups/' + group.id, { method: 'POST' });
+                groupsLoaded = false;
+                loadDetail();
             }
 
             function renderStars(id, rating) {

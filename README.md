@@ -63,6 +63,7 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 - **Star ratings** — 0–5 stars per show/movie, with per-rating filters and high/low sorting.
 - **Hide/unhide** — keep a show/movie in the database but hide it from the main listings (e.g. dropped shows).
 - **Ended flag** — auto-set from TheTVDB's show `status` (and also settable manually). The **Ended** and **Continuing** filters show the count and let you filter by status. Ended shows still have their missing seasons/episodes reported.
+- **Groups** — create your own named groups (e.g. "Harlan Coben", "Mission Impossible"), assign shows and movies to them, and filter the Shows/Movies listings by group.
 
 ### UI & browsing
 
@@ -74,7 +75,8 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 - **Pagination** — 10 / 25 / 50 / 100 items per page.
 - **Recently Aired Episodes** — a dedicated page listing episodes across all shows, with a toggle between **Recently Aired** (by air date, the default) and **Recently Added** (by when the episode was scanned in), an "Added in" date filter (last 1/3/7/30 days), a "Show" depth selector (last 10/20/30/50/100/200/500/All), pagination, search, hide-watched, hidden-show detection, and deep links back to the show/season/episode.
 - **Per-show stats** — each show card shows season counts (available · watched · missing) and episode counts (available · watched · missing) at a glance, with missing highlighted, plus the date it was added.
-- **Show & movie detail pages** — full metadata, poster, collapsible seasons (expand/collapse all), per-episode watched state, notes, IMDb links, rating, watchlist and hide toggles.
+- **Show & movie detail pages** — full metadata, poster, collapsible seasons (expand/collapse all), per-episode watched state, notes, IMDb links, rating, watchlist, hide toggles, and group management (add to/remove from groups, create new groups).
+- **Group filter** — a dropdown on the Shows and Movies pages (plus a `＋` button to create a new group inline) filters the listing to a single group.
 - **Overview popovers** — click the ⓘ icon to read a show/movie/episode overview without cluttering the screen.
 - **External links** — to TheTVDB (series), TMDB (movie), and IMDb.
 - **Configurable date/time format** — a flag button in the header opens a picker to switch between Default, US, UK, and ISO formats; the choice is remembered in the browser.
@@ -229,8 +231,8 @@ ln -s docker-compose.yml compose.yaml
 | **Shows** | Search, filter, sort, switch grid/list, mark watched status, add notes, rate, watchlist, hide/unhide, mark ended, open the detail page |
 | **Movies** | Same as shows, but for movies |
 | **Recently Aired Episodes** | Toggle between Recently Aired (default) and Recently Added, filter by "added in" date range, set the list depth (last N), search, sort, hide watched, paginate, and jump to a show/season/episode |
-| **Show detail** | Poster, overview, IMDb/TVDB links, notes, rating, watchlist/hide/ended toggles, first-aired + last-aired/ended + added dates, collapsible seasons, per-episode watched + calendar dates |
-| **Movie detail** | Poster, overview, IMDb/TMDB links, notes, rating, watchlist/hide toggles, released + added dates, watched + calendar date |
+| **Show detail** | Poster, overview, IMDb/TVDB links, notes, rating, watchlist/hide/ended toggles, first-aired + last-aired/ended + added dates, collapsible seasons, per-episode watched + calendar dates, groups |
+| **Movie detail** | Poster, overview, IMDb/TMDB links, notes, rating, watchlist/hide toggles, released + added dates, watched + calendar date, groups |
 
 **Common actions:**
 
@@ -256,6 +258,9 @@ The data model:
 | `seasons` | `show_id`, `season_number`, `poster_path`, `part_watched`, `created_at` |
 | `episodes` | `season_id`, `episode_number`, `title`, `overview`, `air_date`, `runtime`, `watched`, `watched_at`, `file_path`, `image_path`, `created_at` |
 | `movies` | `title`, `tmdb_id`, `overview`, `poster_path`, `first_aired`, `runtime`, `notes`, `imdb_id`, `hidden`, `watchlist`, `rating`, `watched`, `watched_at`, `file_path`, `deleted`, `created_at`, `updated_at` |
+| `groups` | `id`, `name` (unique), `created_at` |
+| `show_groups` | `show_id`, `group_id` (join table) |
+| `movie_groups` | `movie_id`, `group_id` (join table) |
 
 > **Schema changes:** the app uses `create_all` plus a small startup migration that applies *additive* column changes automatically (e.g. `episodes.created_at`) without touching your data. Destructive changes still require a wipe and rescan: `docker compose down && rm -rf data/ && docker compose up -d --build`, then scan again.
 
@@ -330,6 +335,8 @@ docker compose logs -f tvtrac
 | `PATCH` | `/api/shows/{id}/ended?ended=true` | Mark as ended/ongoing |
 | `PATCH` | `/api/shows/{id}/watchlist?watchlist=true` | Add/remove from watchlist |
 | `PATCH` | `/api/shows/{id}/rating?rating=3` | Set 0–5 rating |
+| `POST` | `/api/shows/{id}/groups/{group_id}` | Add show to a group |
+| `DELETE` | `/api/shows/{id}/groups/{group_id}` | Remove show from a group |
 | `PATCH` | `/api/shows/episodes/{id}/watch?watched=true&watched_at=YYYY-MM-DD` | Toggle episode watched (optional custom date) |
 
 ### Movies
@@ -344,7 +351,17 @@ docker compose logs -f tvtrac
 | `PATCH` | `/api/movies/{id}/hidden?hidden=true` | Hide/unhide |
 | `PATCH` | `/api/movies/{id}/watchlist?watchlist=true` | Add/remove from watchlist |
 | `PATCH` | `/api/movies/{id}/rating?rating=3` | Set 0–5 rating |
+| `POST` | `/api/movies/{id}/groups/{group_id}` | Add movie to a group |
+| `DELETE` | `/api/movies/{id}/groups/{group_id}` | Remove movie from a group |
 | `POST` | `/api/movies/scan` | Scan movies only |
+
+### Groups
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/groups` | List groups (with `show_count` / `movie_count`) |
+| `POST` | `/api/groups` | Create a group (`{"name": "..."}`; 409 on duplicate) |
+| `DELETE` | `/api/groups/{id}` | Delete a group |
 
 ### Scan & episodes
 

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
+from app.models.group import Group
 from app.models.show import Episode, Season, Show
 from app.schemas.show import (
     EpisodeCreate,
@@ -187,6 +188,48 @@ async def set_rating(
     show.rating = max(0, min(5, rating))
     await db.commit()
     await db.refresh(show)
+    return show
+
+
+# ── Groups ───────────────────────────────────────────────────────────────────
+
+
+@router.post("/{show_id}/groups/{group_id}", response_model=ShowOut)
+async def add_show_to_group(
+    show_id: int, group_id: int, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(Show).options(selectinload(Show.groups)).where(Show.id == show_id)
+    )
+    show = result.scalar_one_or_none()
+    if not show:
+        raise HTTPException(status_code=404, detail="Show not found")
+    group = (
+        await db.execute(select(Group).where(Group.id == group_id))
+    ).scalar_one_or_none()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    if not any(g.id == group_id for g in show.groups):
+        show.groups.append(group)
+        await db.commit()
+    return show
+
+
+@router.delete("/{show_id}/groups/{group_id}", response_model=ShowOut)
+async def remove_show_from_group(
+    show_id: int, group_id: int, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(Show).options(selectinload(Show.groups)).where(Show.id == show_id)
+    )
+    show = result.scalar_one_or_none()
+    if not show:
+        raise HTTPException(status_code=404, detail="Show not found")
+    for g in list(show.groups):
+        if g.id == group_id:
+            show.groups.remove(g)
+            await db.commit()
+            break
     return show
 
 

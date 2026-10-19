@@ -35,3 +35,4 @@ class MovieOut(BaseModel):
     deleted: bool
     created_at: datetime
     updated_at: datetime
+    group_names: list[str] = []

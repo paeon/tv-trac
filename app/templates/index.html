@@ -662,6 +662,28 @@
                         <option value="4">4 ★</option>
                         <option value="5">5 ★</option>
                     </select>
+                    <select
+                        id="shows-group-filter"
+                        onchange="applyShowFilters()"
+                        style="
+                            background: var(--surface);
+                            color: var(--text);
+                            border: 1px solid var(--border);
+                            border-radius: 6px;
+                            padding: 0.4rem 0.6rem;
+                            font-size: 0.8rem;
+                        "
+                    >
+                        <option value="">All Groups</option>
+                    </select>
+                    <button
+                        class="filter-btn"
+                        onclick="openNewGroupPopover('shows', event)"
+                        title="Create a new group"
+                        style="padding:0.4rem 0.55rem"
+                    >
+                        ＋
+                    </button>
                     <button class="filter-btn" onclick="clearAllFilters()">
                         ✕ Clear All
                     </button>
@@ -802,6 +824,28 @@
                         <option value="4">4 ★</option>
                         <option value="5">5 ★</option>
                     </select>
+                    <select
+                        id="movies-group-filter"
+                        onchange="applyMovieFilters()"
+                        style="
+                            background: var(--surface);
+                            color: var(--text);
+                            border: 1px solid var(--border);
+                            border-radius: 6px;
+                            padding: 0.4rem 0.6rem;
+                            font-size: 0.8rem;
+                        "
+                    >
+                        <option value="">All Groups</option>
+                    </select>
+                    <button
+                        class="filter-btn"
+                        onclick="openNewGroupPopover('movies', event)"
+                        title="Create a new group"
+                        style="padding:0.4rem 0.55rem"
+                    >
+                        ＋
+                    </button>
                     <button class="filter-btn" onclick="clearAllMovieFilters()">
                         ✕ Clear All
                     </button>
@@ -859,8 +903,10 @@
             // ── API ────────────────────────────────────────────────────────
             var SHOWS_API = "/api/shows";
             var MOVIES_API = "/api/movies";
+            var GROUPS_API = "/api/groups";
             var allShows = [],
-                allMovies = [];
+                allMovies = [],
+                allGroups = [];
 
             async function apiFetch(url, opts) {
                 var resp = await fetch(url, opts);
@@ -873,6 +919,99 @@
                     throw err;
                 }
                 return resp.json();
+            }
+
+            async function fetchGroups() {
+                try {
+                    allGroups = await apiFetch(GROUPS_API);
+                } catch (e) {
+                    allGroups = [];
+                }
+                populateGroupFilters();
+            }
+
+            function groupOptions(selectedValue) {
+                var options = '<option value="">All Groups</option>';
+                allGroups.forEach(function (g) {
+                    options +=
+                        '<option value="' +
+                        escapeHtml(g.name) +
+                        '"' +
+                        (g.name === selectedValue ? " selected" : "") +
+                        ">" +
+                        escapeHtml(g.name) +
+                        "</option>";
+                });
+                return options;
+            }
+
+            function populateGroupFilters() {
+                var showsSel = document.getElementById("shows-group-filter");
+                var moviesSel = document.getElementById("movies-group-filter");
+                if (showsSel) showsSel.innerHTML = groupOptions(showGroupFilter);
+                if (moviesSel)
+                    moviesSel.innerHTML = groupOptions(movieGroupFilter);
+            }
+
+            function openNewGroupPopover(kind, ev) {
+                ev.stopPropagation();
+                dismissPopover();
+                var pop = document.createElement("div");
+                pop.className = "popover";
+                pop.id = "new-group-popover";
+                pop.innerHTML =
+                    '<div style="font-size:0.8rem;margin-bottom:0.4rem;font-weight:600;">New group</div>' +
+                    '<input id="new-group-name" type="text" placeholder="Group name" style="width:100%;box-sizing:border-box;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.3rem;font-size:0.8rem;">' +
+                    '<div style="margin-top:0.5rem;display:flex;gap:0.4rem;">' +
+                    '<button onclick="createGroupFromPopover(\'' +
+                    kind +
+                    '\')" style="background:var(--accent);color:#fff;border:none;padding:0.25rem 0.7rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">Create</button>' +
+                    '<button onclick="dismissPopover()" style="background:var(--border);color:var(--text);border:none;padding:0.25rem 0.7rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">Cancel</button>' +
+                    "</div>";
+                document.body.appendChild(pop);
+                activePopover = pop;
+                var rect = ev.target.getBoundingClientRect();
+                var top = rect.bottom + 4;
+                var left = Math.max(8, rect.right - 220);
+                if (top + 120 > window.innerHeight) top = rect.top - 130;
+                pop.style.top = top + "px";
+                pop.style.left = left + "px";
+                var input = document.getElementById("new-group-name");
+                if (input) {
+                    input.focus();
+                    input.addEventListener("keydown", function (e) {
+                        if (e.key === "Enter") createGroupFromPopover(kind);
+                    });
+                }
+            }
+
+            async function createGroupFromPopover(kind) {
+                var input = document.getElementById("new-group-name");
+                var name = input ? input.value.trim() : "";
+                if (!name) {
+                    if (input) input.focus();
+                    return;
+                }
+                try {
+                    await apiFetch(GROUPS_API, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name: name }),
+                    });
+                } catch (e) {
+                    var detail = e.body && e.body.detail ? e.body.detail : e.message;
+                    alert("Could not create group: " + detail);
+                    return;
+                }
+                dismissPopover();
+                if (kind === "movies") {
+                    movieGroupFilter = name;
+                } else {
+                    showGroupFilter = name;
+                }
+                await fetchGroups();
+                if (kind === "movies") applyMovieFilters();
+                else applyShowFilters();
             }
 
             // ── Popover ────────────────────────────────────────────────────
@@ -909,6 +1048,8 @@
                         activePopover = pop;
                         return;
                     }
+                    if (activePopover && activePopover.contains(e.target))
+                        return;
                     if (activePopover) dismissPopover();
                 },
                 true,
@@ -1032,7 +1173,8 @@
                 showSearch = "",
                 showCurrentPage = 1,
                 showPerPage = 10,
-                showViewMode = "grid";
+                showViewMode = "grid",
+                showGroupFilter = "";
 
             function saveShowState() {
                 try {
@@ -1082,6 +1224,8 @@
                 document.getElementById("shows-date-filter").value = "";
                 document.getElementById("shows-aired-filter").value = "";
                 document.getElementById("shows-rating-filter").value = "0";
+                document.getElementById("shows-group-filter").value = "";
+                showGroupFilter = "";
                 // Reset active filter button to All
                 document
                     .querySelectorAll("#page-shows .filter-btn")
@@ -1214,6 +1358,16 @@
                 if (ratingFilter > 0) {
                     filtered = filtered.filter(function (s) {
                         return s.rating === ratingFilter;
+                    });
+                }
+                // Group filter
+                showGroupFilter =
+                    document.getElementById("shows-group-filter").value;
+                if (showGroupFilter) {
+                    filtered = filtered.filter(function (s) {
+                        return (
+                            (s.group_names || []).indexOf(showGroupFilter) !== -1
+                        );
                     });
                 }
                 // Compute counts: total / visible / hidden
@@ -1746,7 +1900,8 @@
                 movieSearch = "",
                 moviePage = 1,
                 moviePerPage = 10,
-                movieViewMode = "grid";
+                movieViewMode = "grid",
+                movieGroupFilter = "";
             function setMovieFilter(f, btn) {
                 movieFilter = f;
                 document
@@ -1770,6 +1925,8 @@
                 document.getElementById("movies-sort").value = "alpha";
                 document.getElementById("movies-aired-filter").value = "";
                 document.getElementById("movies-rating-filter").value = "0";
+                document.getElementById("movies-group-filter").value = "";
+                movieGroupFilter = "";
                 document
                     .querySelectorAll("#page-movies .filter-btn")
                     .forEach(function (b) {
@@ -1842,6 +1999,16 @@
                 if (ratingFilter > 0) {
                     filtered = filtered.filter(function (m) {
                         return m.rating === ratingFilter;
+                    });
+                }
+                // Group filter
+                movieGroupFilter =
+                    document.getElementById("movies-group-filter").value;
+                if (movieGroupFilter) {
+                    filtered = filtered.filter(function (m) {
+                        return (
+                            (m.group_names || []).indexOf(movieGroupFilter) !== -1
+                        );
                     });
                 }
                 var sort = document.getElementById("movies-sort").value;
@@ -2346,6 +2513,7 @@
                 if (moviesLink) showPage("movies", moviesLink);
             }
 
+            fetchGroups();
             fetchShows();
         </script>
     </body>

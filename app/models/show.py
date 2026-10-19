@@ -7,6 +7,7 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.group import show_groups
 
 if TYPE_CHECKING:
     pass
@@ -47,6 +48,13 @@ class Show(Base):
     seasons: Mapped[List["Season"]] = relationship(
         "Season", back_populates="show", cascade="all, delete-orphan", lazy="selectin"
     )
+    groups: Mapped[List["Group"]] = relationship(
+        "Group", secondary=show_groups, back_populates="shows", lazy="selectin"
+    )
+
+    @property
+    def group_names(self) -> list[str]:
+        return [g.name for g in self.groups]
 
     def __repr__(self) -> str:
         return f"<Show id={self.id} title={self.title!r}>"

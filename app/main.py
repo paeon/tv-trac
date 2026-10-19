@@ -12,8 +12,9 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import settings
 from app.database import init_db
+from app.models.group import Group  # noqa: F401 — register model
 from app.models.movie import Movie  # noqa: F401 — register model
-from app.routers import episodes, movies, scan, shows, tvdb
+from app.routers import episodes, groups, movies, scan, shows, tvdb
 from app.services.images import IMAGE_DIR
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
@@ -64,6 +65,7 @@ app.include_router(scan.router)
 app.include_router(tvdb.router)
 app.include_router(movies.router)
 app.include_router(episodes.router)
+app.include_router(groups.router)
 
 
 # ── Web UI ───────────────────────────────────────────────────────────────────

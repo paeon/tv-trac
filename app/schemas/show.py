@@ -88,6 +88,7 @@ class ShowOut(BaseModel):
     deleted: bool
     created_at: datetime
     updated_at: datetime
+    group_names: list[str] = []
     # Computed aggregates (populated by the list endpoint)
     season_count: int = 0
     watched_season_count: int = 0

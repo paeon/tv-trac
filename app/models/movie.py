@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.group import movie_groups
 
 if TYPE_CHECKING:
     pass
@@ -38,6 +39,13 @@ class Movie(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
+    groups: Mapped[List["Group"]] = relationship(
+        "Group", secondary=movie_groups, back_populates="movies", lazy="selectin"
+    )
+
+    @property
+    def group_names(self) -> list[str]:
+        return [g.name for g in self.groups]
 
     def __repr__(self) -> str:
         return f"<Movie id={self.id} title={self.title!r}>"

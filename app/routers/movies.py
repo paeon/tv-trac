@@ -7,8 +7,10 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.database import get_db
+from app.models.group import Group
 from app.models.movie import Movie
 from app.schemas.movie import MovieCreate, MovieOut
 from app.services.movie_sync import sync_movies
@@ -143,6 +145,48 @@ async def set_rating(
     movie.rating = max(0, min(5, rating))
     await db.commit()
     await db.refresh(movie)
+    return movie
+
+
+# ── Groups ───────────────────────────────────────────────────────────────────
+
+
+@router.post("/{movie_id}/groups/{group_id}", response_model=MovieOut)
+async def add_movie_to_group(
+    movie_id: int, group_id: int, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(Movie).options(selectinload(Movie.groups)).where(Movie.id == movie_id)
+    )
+    movie = result.scalar_one_or_none()
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    group = (
+        await db.execute(select(Group).where(Group.id == group_id))
+    ).scalar_one_or_none()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    if not any(g.id == group_id for g in movie.groups):
+        movie.groups.append(group)
+        await db.commit()
+    return movie
+
+
+@router.delete("/{movie_id}/groups/{group_id}", response_model=MovieOut)
+async def remove_movie_from_group(
+    movie_id: int, group_id: int, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(Movie).options(selectinload(Movie.groups)).where(Movie.id == movie_id)
+    )
+    movie = result.scalar_one_or_none()
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    for g in list(movie.groups):
+        if g.id == group_id:
+            movie.groups.remove(g)
+            await db.commit()
+            break
     return movie
 
 
