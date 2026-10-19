@@ -684,6 +684,14 @@
                     >
                         ＋
                     </button>
+                    <button
+                        class="filter-btn"
+                        onclick="openDeleteGroupPopover(event)"
+                        title="Delete empty groups"
+                        style="padding:0.4rem 0.55rem"
+                    >
+                        🗑
+                    </button>
                     <button class="filter-btn" onclick="clearAllFilters()">
                         ✕ Clear All
                     </button>
@@ -704,6 +712,10 @@
                             style="color: var(--text-muted); font-size: 0.85rem"
                         ></span>
                     </h2>
+                    <div
+                        id="shows-group-heading"
+                        style="display: none"
+                    ></div>
                     <div id="shows-list" class="loading">Loading shows...</div>
                     <div id="shows-pagination" class="page-nav"></div>
                 </div>
@@ -846,6 +858,14 @@
                     >
                         ＋
                     </button>
+                    <button
+                        class="filter-btn"
+                        onclick="openDeleteGroupPopover(event)"
+                        title="Delete empty groups"
+                        style="padding:0.4rem 0.55rem"
+                    >
+                        🗑
+                    </button>
                     <button class="filter-btn" onclick="clearAllMovieFilters()">
                         ✕ Clear All
                     </button>
@@ -865,6 +885,10 @@
                             style="color: var(--text-muted); font-size: 0.85rem"
                         ></span>
                     </h2>
+                    <div
+                        id="movies-group-heading"
+                        style="display: none"
+                    ></div>
                     <div id="movies-list" class="loading">
                         Loading movies...
                     </div>
@@ -930,9 +954,17 @@
                 populateGroupFilters();
             }
 
-            function groupOptions(selectedValue) {
+            function groupOptions(kind, selectedValue) {
                 var options = '<option value="">All Groups</option>';
                 allGroups.forEach(function (g) {
+                    var count =
+                        kind === "movies"
+                            ? g.movie_count || 0
+                            : g.show_count || 0;
+                    var noun =
+                        kind === "movies"
+                            ? (count === 1 ? "movie" : "movies")
+                            : (count === 1 ? "show" : "shows");
                     options +=
                         '<option value="' +
                         escapeHtml(g.name) +
@@ -940,6 +972,11 @@
                         (g.name === selectedValue ? " selected" : "") +
                         ">" +
                         escapeHtml(g.name) +
+                        " (" +
+                        count +
+                        " " +
+                        noun +
+                        ")" +
                         "</option>";
                 });
                 return options;
@@ -948,9 +985,38 @@
             function populateGroupFilters() {
                 var showsSel = document.getElementById("shows-group-filter");
                 var moviesSel = document.getElementById("movies-group-filter");
-                if (showsSel) showsSel.innerHTML = groupOptions(showGroupFilter);
+                if (showsSel)
+                    showsSel.innerHTML = groupOptions("shows", showGroupFilter);
                 if (moviesSel)
-                    moviesSel.innerHTML = groupOptions(movieGroupFilter);
+                    moviesSel.innerHTML = groupOptions("movies", movieGroupFilter);
+            }
+
+            function updateGroupHeading(kind) {
+                var id =
+                    kind === "movies"
+                        ? "movies-group-heading"
+                        : "shows-group-heading";
+                var name =
+                    kind === "movies" ? movieGroupFilter : showGroupFilter;
+                var el = document.getElementById(id);
+                if (!el) return;
+                if (name) {
+                    el.style.display = "block";
+                    el.style.marginBottom = "0.75rem";
+                    el.style.padding = "0.6rem 0.9rem";
+                    el.style.background = "rgba(233,69,96,0.08)";
+                    el.style.border = "1px solid var(--accent)";
+                    el.style.borderRadius = "6px";
+                    el.style.fontSize = "1.1rem";
+                    el.style.fontWeight = "700";
+                    el.style.color = "var(--text)";
+                    el.innerHTML =
+                        '<span style="color:var(--text-muted);font-weight:600;font-size:0.8rem;">Group:</span> ' +
+                        escapeHtml(name);
+                } else {
+                    el.style.display = "none";
+                    el.innerHTML = "";
+                }
             }
 
             function openNewGroupPopover(kind, ev) {
@@ -1012,6 +1078,74 @@
                 await fetchGroups();
                 if (kind === "movies") applyMovieFilters();
                 else applyShowFilters();
+            }
+
+            function openDeleteGroupPopover(ev) {
+                ev.stopPropagation();
+                dismissPopover();
+                var empty = allGroups.filter(function (g) {
+                    return (
+                        (g.show_count || 0) === 0 && (g.movie_count || 0) === 0
+                    );
+                });
+                var pop = document.createElement("div");
+                pop.className = "popover";
+                pop.id = "delete-group-popover";
+                var html =
+                    '<div style="font-size:0.8rem;margin-bottom:0.4rem;font-weight:600;">Delete empty groups</div>';
+                if (empty.length === 0) {
+                    html +=
+                        '<div style="font-size:0.75rem;color:var(--text-muted);">No empty groups.</div>';
+                } else {
+                    empty.forEach(function (g) {
+                        html +=
+                            '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;padding:0.2rem 0;">' +
+                            '<span style="font-size:0.8rem;">' +
+                            escapeHtml(g.name) +
+                            "</span>" +
+                            '<button onclick="deleteGroup(' +
+                            g.id +
+                            ')" style="background:var(--accent);color:#fff;border:none;padding:0.2rem 0.6rem;border-radius:4px;font-size:0.7rem;cursor:pointer;">Delete</button>' +
+                            "</div>";
+                    });
+                }
+                html +=
+                    '<div style="margin-top:0.5rem;"><button onclick="dismissPopover()" style="background:var(--border);color:var(--text);border:none;padding:0.25rem 0.7rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">Close</button></div>';
+                pop.innerHTML = html;
+                document.body.appendChild(pop);
+                activePopover = pop;
+                var rect = ev.target.getBoundingClientRect();
+                var top = rect.bottom + 4;
+                var left = Math.max(8, rect.right - 240);
+                if (top + 180 > window.innerHeight) top = rect.top - 180;
+                pop.style.top = top + "px";
+                pop.style.left = left + "px";
+            }
+
+            async function deleteGroup(groupId) {
+                try {
+                    await apiFetch(GROUPS_API + "/" + groupId, {
+                        method: "DELETE",
+                    });
+                } catch (e) {
+                    alert(
+                        "Could not delete group: " +
+                            (e.body && e.body.detail ? e.body.detail : e.message),
+                    );
+                    return;
+                }
+                var removed = allGroups.find(function (x) {
+                    return x.id === groupId;
+                });
+                if (removed) {
+                    if (showGroupFilter === removed.name) showGroupFilter = "";
+                    if (movieGroupFilter === removed.name)
+                        movieGroupFilter = "";
+                }
+                dismissPopover();
+                await fetchGroups();
+                applyShowFilters();
+                applyMovieFilters();
             }
 
             // ── Popover ────────────────────────────────────────────────────
@@ -1186,6 +1320,7 @@
                             page: showCurrentPage,
                             perPage: showPerPage,
                             view: showViewMode,
+                            group: showGroupFilter,
                         }),
                     );
                 } catch (e) {}
@@ -1202,6 +1337,7 @@
                     showCurrentPage = s.page || 1;
                     showPerPage = s.perPage || 10;
                     showViewMode = s.view || "grid";
+                    showGroupFilter = s.group || "";
                 } catch (e) {}
             }
 
@@ -1370,6 +1506,7 @@
                         );
                     });
                 }
+                updateGroupHeading("shows");
                 // Compute counts: total / visible / hidden
                 var totalShows = allShows.length;
                 var visibleShows = allShows.filter(function (s) {
@@ -2011,6 +2148,7 @@
                         );
                     });
                 }
+                updateGroupHeading("movies");
                 var sort = document.getElementById("movies-sort").value;
                 if (airedFilter && airedFilter !== "all" && sort === "alpha") {
                     if (airedFilter === "upcoming") {

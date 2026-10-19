@@ -47,6 +47,8 @@ async def delete_group(group_id: int, db: AsyncSession = Depends(get_db)):
     group = result.scalar_one_or_none()
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
+    if len(group.shows) > 0 or len(group.movies) > 0:
+        raise HTTPException(status_code=409, detail="Group is not empty")
     await db.delete(group)
     await db.commit()
     return {"status": "deleted"}

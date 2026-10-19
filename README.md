@@ -76,7 +76,7 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 - **Recently Aired Episodes** — a dedicated page listing episodes across all shows, with a toggle between **Recently Aired** (by air date, the default) and **Recently Added** (by when the episode was scanned in), an "Added in" date filter (last 1/3/7/30 days), a "Show" depth selector (last 10/20/30/50/100/200/500/All), pagination, search, hide-watched, hidden-show detection, and deep links back to the show/season/episode.
 - **Per-show stats** — each show card shows season counts (available · watched · missing) and episode counts (available · watched · missing) at a glance, with missing highlighted, plus the date it was added.
 - **Show & movie detail pages** — full metadata, poster, collapsible seasons (expand/collapse all), per-episode watched state, notes, IMDb links, rating, watchlist, hide toggles, and group management (add to/remove from groups, create new groups).
-- **Group filter** — a dropdown on the Shows and Movies pages (plus a `＋` button to create a new group inline) filters the listing to a single group.
+- **Group filter** — a dropdown on the Shows and Movies pages (showing each group's show/movie count, plus a `＋` button to create a new group and a `🗑` button to delete empty groups) filters the listing to a single group. When a group is selected, its name is shown in a prominent banner above the listing.
 - **Overview popovers** — click the ⓘ icon to read a show/movie/episode overview without cluttering the screen.
 - **External links** — to TheTVDB (series), TMDB (movie), and IMDb.
 - **Configurable date/time format** — a flag button in the header opens a picker to switch between Default, US, UK, and ISO formats; the choice is remembered in the browser.
@@ -361,7 +361,7 @@ docker compose logs -f tvtrac
 |---|---|---|
 | `GET` | `/api/groups` | List groups (with `show_count` / `movie_count`) |
 | `POST` | `/api/groups` | Create a group (`{"name": "..."}`; 409 on duplicate) |
-| `DELETE` | `/api/groups/{id}` | Delete a group |
+| `DELETE` | `/api/groups/{id}` | Delete an **empty** group (409 if it still has members) |
 
 ### Scan & episodes
 
