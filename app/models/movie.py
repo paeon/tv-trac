@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List
 
@@ -29,6 +30,10 @@ class Movie(Base):
     runtime: Mapped[int | None] = mapped_column(Integer, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     imdb_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    genres: Mapped[str | None] = mapped_column(Text, nullable=True)
+    studio: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    country: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    language: Mapped[str | None] = mapped_column(String(100), nullable=True)
     hidden: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     watchlist: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     rating: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -44,8 +49,23 @@ class Movie(Base):
     )
 
     @property
+    def genre_list(self) -> list[str]:
+        try:
+            data = json.loads(self.genres or "[]")
+        except (ValueError, TypeError):
+            return []
+        return [str(x) for x in data] if isinstance(data, list) else []
+
+    @property
     def group_names(self) -> list[str]:
+        cached = getattr(self, "_group_names", None)
+        if cached is not None:
+            return cached
         return [g.name for g in self.groups]
+
+    @group_names.setter
+    def group_names(self, value: list[str]) -> None:
+        self._group_names = value
 
     def __repr__(self) -> str:
         return f"<Movie id={self.id} title={self.title!r}>"

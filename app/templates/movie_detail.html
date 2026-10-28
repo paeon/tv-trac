@@ -241,6 +241,7 @@
                     var m = await resp.json();
                     document.title = m.title + ' — TV-Trac';
                     el.innerHTML = render(m);
+                    onSmartFieldChange();
                 } catch (e) {
                     el.innerHTML = '<p style="color:var(--accent);">Failed to load: ' + escapeHtml(e.message) + '</p>';
                 }
@@ -291,16 +292,33 @@
                     '</div>';
             }
 
+            var MOVIE_SMART_FIELDS = [
+                { value: "genre", label: "Genre" },
+                { value: "studio", label: "Studio" },
+                { value: "country", label: "Country" },
+                { value: "language", label: "Language" },
+                { value: "year", label: "Year" },
+            ];
+
             function renderGroupsSection(m) {
                 var current = m.group_names || [];
-                var assigned = allGroups.filter(function (g) { return current.indexOf(g.name) !== -1; });
-                var available = allGroups.filter(function (g) { return current.indexOf(g.name) === -1; });
-                var chips = assigned.map(function (g) {
+                var manualAssigned = allGroups.filter(function (g) { return g.kind !== "smart" && current.indexOf(g.name) !== -1; });
+                var smartAssigned = allGroups.filter(function (g) { return g.kind === "smart" && current.indexOf(g.name) !== -1; });
+                var available = allGroups.filter(function (g) { return g.kind !== "smart" && current.indexOf(g.name) === -1; });
+
+                var chips = manualAssigned.map(function (g) {
                     return '<span style="display:inline-flex;align-items:center;gap:0.35rem;background:var(--border);border-radius:999px;padding:0.1rem 0.15rem 0.1rem 0.6rem;font-size:0.75rem;margin:0 0.3rem 0.3rem 0;">' +
                         escapeHtml(g.name) +
                         '<button onclick="removeGroup(' + g.id + ')" title="Remove from group" style="cursor:pointer;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:999px;width:1.25rem;height:1.25rem;line-height:1;font-size:0.7rem;padding:0;display:inline-flex;align-items:center;justify-content:center;">✕</button>' +
                     '</span>';
                 }).join('');
+
+                var smartChips = smartAssigned.map(function (g) {
+                    return '<span title="Smart group (auto)" style="display:inline-flex;align-items:center;gap:0.3rem;background:rgba(233,69,96,0.08);border:1px solid var(--accent);border-radius:999px;padding:0.1rem 0.15rem 0.1rem 0.6rem;font-size:0.75rem;margin:0 0.3rem 0.3rem 0;">⚡ ' + escapeHtml(g.name) +
+                        '<button onclick="deleteSmartGroup(' + g.id + ')" title="Delete smart group" style="cursor:pointer;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:999px;width:1.25rem;height:1.25rem;line-height:1;font-size:0.7rem;padding:0;display:inline-flex;align-items:center;justify-content:center;">🗑</button>' +
+                    '</span>';
+                }).join('');
+
                 var addControls = '';
                 if (available.length) {
                     addControls += '<select id="group-add-select" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.5rem;font-size:0.75rem;">' +
@@ -313,8 +331,22 @@
                     '<input id="new-group-name" type="text" placeholder="New group name" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.5rem;font-size:0.75rem;width:140px;">' +
                     '<button onclick="createAndAddGroup()" style="background:var(--border);color:var(--text);border:none;padding:0.3rem 0.8rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">Create &amp; add</button>' +
                 '</span>';
-                return (chips || '<span style="color:var(--text-muted);font-size:0.8rem;">No groups yet</span>') +
-                    '<div style="margin-top:0.5rem;display:flex;align-items:center;flex-wrap:wrap;gap:0.4rem;">' + addControls + newGroup + '</div>';
+
+                var smartForm = '<div style="margin-top:0.75rem;padding-top:0.6rem;border-top:1px dashed var(--border);">' +
+                    '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.4rem;">Smart group (auto-populates from metadata)</div>' +
+                    '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;">' +
+                    '<select id="smart-field" onchange="onSmartFieldChange()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.5rem;font-size:0.75rem;">' +
+                    MOVIE_SMART_FIELDS.map(function (f) { return '<option value="' + f.value + '">' + f.label + '</option>'; }).join('') +
+                    '</select> ' +
+                    '<select id="smart-value" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:0.3rem 0.5rem;font-size:0.75rem;"><option value="">Select value…</option></select> ' +
+                    '<button onclick="createSmartGroup()" style="background:var(--accent);color:#fff;border:none;padding:0.3rem 0.8rem;border-radius:4px;font-size:0.75rem;cursor:pointer;">Create smart group</button>' +
+                    '</div></div>';
+
+                var assignedHtml = (chips || smartChips) ? chips + smartChips : '<span style="color:var(--text-muted);font-size:0.8rem;">No groups yet</span>';
+
+                return assignedHtml +
+                    '<div style="margin-top:0.5rem;display:flex;align-items:center;flex-wrap:wrap;gap:0.4rem;">' + addControls + newGroup + '</div>' +
+                    smartForm;
             }
 
             async function addGroup() {
@@ -350,6 +382,44 @@
                 }
                 if (!group) return;
                 await fetch('/api/movies/' + MOVIE_ID + '/groups/' + group.id, { method: 'POST' });
+                groupsLoaded = false;
+                loadDetail();
+            }
+
+            async function onSmartFieldChange() {
+                var field = document.getElementById('smart-field').value;
+                var sel = document.getElementById('smart-value');
+                sel.innerHTML = '<option value="">Loading…</option>';
+                var values = [];
+                try {
+                    var resp = await fetch('/api/groups/field-values?type=movie&field=' + encodeURIComponent(field));
+                    if (resp.ok) values = await resp.json();
+                } catch (e) { values = []; }
+                sel.innerHTML = '<option value="">Select value…</option>' +
+                    values.map(function (v) { return '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + '</option>'; }).join('');
+            }
+
+            async function createSmartGroup() {
+                var field = document.getElementById('smart-field').value;
+                var value = document.getElementById('smart-value').value;
+                if (!value) return;
+                var resp = await fetch('/api/groups', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kind: 'smart', smart_field: field, smart_value: value }),
+                });
+                if (!resp.ok) {
+                    var body = await resp.json().catch(function () { return {}; });
+                    alert('Could not create smart group: ' + (body.detail || 'error'));
+                    return;
+                }
+                groupsLoaded = false;
+                loadDetail();
+            }
+
+            async function deleteSmartGroup(groupId) {
+                if (!confirm('Delete this smart group?')) return;
+                await fetch('/api/groups/' + groupId, { method: 'DELETE' });
                 groupsLoaded = false;
                 loadDetail();
             }

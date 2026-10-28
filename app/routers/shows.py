@@ -20,10 +20,22 @@ from app.schemas.show import (
     ShowOut,
     ShowOutNested,
 )
+from app.services.smart_groups import show_matches
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/shows", tags=["shows"])
+
+
+async def _apply_smart_group_names(shows, db: AsyncSession) -> None:
+    """Attach manual + smart group names to each show (via the group_names setter)."""
+    smart_groups = (
+        await db.execute(select(Group).where(Group.kind == "smart"))
+    ).scalars().all()
+    for show in shows:
+        manual = [g.name for g in show.groups]
+        smart = [g.name for g in smart_groups if show_matches(show, g)]
+        show.group_names = manual + smart
 
 # ── Shows ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +66,7 @@ async def list_shows(
         )
         show.episode_count = len(episodes)
         show.watched_episode_count = sum(1 for ep in episodes if ep.watched)
+    await _apply_smart_group_names(shows, db)
     return shows
 
 
@@ -67,6 +80,7 @@ async def get_show(show_id: int, db: AsyncSession = Depends(get_db)):
     show = result.scalar_one_or_none()
     if not show:
         raise HTTPException(status_code=404, detail="Show not found")
+    await _apply_smart_group_names([show], db)
     return show
 
 

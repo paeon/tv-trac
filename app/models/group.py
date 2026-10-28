@@ -47,6 +47,9 @@ class Group(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), default="manual", nullable=False)
+    smart_field: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    smart_value: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     shows: Mapped[List["Show"]] = relationship(
         "Show", secondary=show_groups, back_populates="groups", lazy="selectin"
@@ -55,5 +58,9 @@ class Group(Base):
         "Movie", secondary=movie_groups, back_populates="groups", lazy="selectin"
     )
 
+    @property
+    def is_smart(self) -> bool:
+        return self.kind == "smart"
+
     def __repr__(self) -> str:
-        return f"<Group id={self.id} name={self.name!r}>"
+        return f"<Group id={self.id} name={self.name!r} kind={self.kind!r}>"

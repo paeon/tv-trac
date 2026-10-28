@@ -26,6 +26,10 @@ class MovieOut(BaseModel):
     runtime: int | None
     notes: str | None
     imdb_id: str | None
+    genre_list: list[str] = []
+    studio: str | None
+    country: str | None
+    language: str | None
     hidden: bool
     watchlist: bool
     rating: int

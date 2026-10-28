@@ -4,6 +4,7 @@ Movie scan → TMDB enrichment → Database persistence.
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from typing import Any
@@ -13,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.movie import Movie
 from app.services.images import download_image, store_local_image
+from app.services.metadata import language_name
 from app.services.movie_scanner import scan_movie_root
 from app.services.nfo import find_nfo
 from app.services.tmdb import IMAGE_BASE, tmdb
@@ -66,6 +68,30 @@ def _extract_year(title: str) -> str | None:
     return m.group(1) if m else None
 
 
+def _extract_genres(details: dict) -> list[str] | None:
+    genres = details.get("genres") or []
+    names = [
+        g.get("name") for g in genres if isinstance(g, dict) and g.get("name")
+    ]
+    return names
+
+
+def _extract_studio(details: dict) -> str | None:
+    companies = details.get("production_companies") or []
+    for c in companies:
+        if isinstance(c, dict) and c.get("name"):
+            return c["name"]
+    return None
+
+
+def _extract_country(details: dict) -> str | None:
+    countries = details.get("production_countries") or []
+    for c in countries:
+        if isinstance(c, dict) and c.get("name"):
+            return c["name"]
+    return None
+
+
 async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
     tmdb_id: int | None = None
     overview: str | None = None
@@ -73,6 +99,11 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
     first_aired: str | None = None
     runtime: int | None = None
     imdb_id: str | None = None
+    genres: list[str] | None = None
+    studio: str | None = None
+    country: str | None = None
+    language: str | None = None
+    details: dict[str, Any] | None = None
 
     # Skip the API if this movie is already enriched.
     conditions = [Movie.title == sm.title]
@@ -80,7 +111,7 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
         conditions.append(Movie.tmdb_id == sm.tmdb_id)
     existing = await db.execute(select(Movie).where(or_(*conditions)))
     existing_movie = existing.scalar_one_or_none()
-    if existing_movie and existing_movie.overview and existing_movie.first_aired:
+    if existing_movie and existing_movie.overview and existing_movie.first_aired and existing_movie.genres is not None:
         if existing_movie.deleted:
             existing_movie.deleted = False
             await db.commit()
@@ -131,6 +162,12 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
     except Exception:
         logger.warning("TMDB lookup failed for %r", sm.title)
 
+    if details:
+        genres = _extract_genres(details)
+        studio = _extract_studio(details)
+        country = _extract_country(details)
+        language = language_name(details.get("original_language"))
+
     # Upsert
     conditions = [Movie.title == sm.title]
     if tmdb_id:
@@ -148,6 +185,10 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
             runtime=runtime,
             imdb_id=imdb_id,
             file_path=sm.file_path,
+            genres=json.dumps(genres) if genres is not None else None,
+            studio=studio,
+            country=country,
+            language=language,
         )
         db.add(movie)
         await db.flush()
@@ -166,6 +207,14 @@ async def _sync_one_movie(db: AsyncSession, sm) -> dict[str, Any]:
             movie.imdb_id = imdb_id
         if not movie.file_path and sm.file_path:
             movie.file_path = sm.file_path
+        if genres is not None and movie.genres is None:
+            movie.genres = json.dumps(genres)
+        if studio and not movie.studio:
+            movie.studio = studio
+        if country and not movie.country:
+            movie.country = country
+        if language and not movie.language:
+            movie.language = language
 
     # Prefer local artwork, then fall back to the TMDB poster
     if sm.poster_path:

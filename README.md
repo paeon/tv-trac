@@ -64,6 +64,7 @@ It runs as a single Docker container, stores everything in a local SQLite databa
 - **Hide/unhide** — keep a show/movie in the database but hide it from the main listings (e.g. dropped shows).
 - **Ended flag** — auto-set from TheTVDB's show `status` (and also settable manually). The **Ended** and **Continuing** filters show the count and let you filter by status. Ended shows still have their missing seasons/episodes reported.
 - **Groups** — create your own named groups (e.g. "Harlan Coben", "Mission Impossible"), assign shows and movies to them, and filter the Shows/Movies listings by group.
+- **Smart groups** — create rule-based groups from metadata (TV: Genre, Network, Country, Language, Status, Year; Movies: Genre, Studio, Country, Language, Year). Pick a field and a value (auto-suggested from your library) and the group auto-populates dynamically on every scan.
 
 ### UI & browsing
 
@@ -255,11 +256,11 @@ The data model:
 
 | Table | Key fields |
 |---|---|
-| `shows` | `title`, `tvdb_id`, `tvdb_slug`, `overview`, `poster_path`, `first_aired`, `last_aired`, `notes`, `imdb_id`, `missing_count`, `missing_details`, `missing_season_count`, `ended`, `hidden`, `watchlist`, `rating`, `part_watched`, `deleted`, `created_at`, `updated_at` |
+| `shows` | `title`, `tvdb_id`, `tvdb_slug`, `overview`, `poster_path`, `first_aired`, `last_aired`, `notes`, `imdb_id`, `genres`, `network`, `country`, `language`, `status`, `missing_count`, `missing_details`, `missing_season_count`, `ended`, `hidden`, `watchlist`, `rating`, `part_watched`, `deleted`, `created_at`, `updated_at` |
 | `seasons` | `show_id`, `season_number`, `poster_path`, `part_watched`, `created_at` |
 | `episodes` | `season_id`, `episode_number`, `title`, `overview`, `air_date`, `runtime`, `watched`, `watched_at`, `file_path`, `image_path`, `created_at` |
-| `movies` | `title`, `tmdb_id`, `overview`, `poster_path`, `first_aired`, `runtime`, `notes`, `imdb_id`, `hidden`, `watchlist`, `rating`, `watched`, `watched_at`, `file_path`, `deleted`, `created_at`, `updated_at` |
-| `groups` | `id`, `name` (unique), `created_at` |
+| `movies` | `title`, `tmdb_id`, `overview`, `poster_path`, `first_aired`, `runtime`, `notes`, `imdb_id`, `genres`, `studio`, `country`, `language`, `hidden`, `watchlist`, `rating`, `watched`, `watched_at`, `file_path`, `deleted`, `created_at`, `updated_at` |
+| `groups` | `id`, `name` (unique), `created_at`, `kind` (`manual`/`smart`), `smart_field`, `smart_value` |
 | `show_groups` | `show_id`, `group_id` (join table) |
 | `movie_groups` | `movie_id`, `group_id` (join table) |
 
@@ -361,8 +362,9 @@ docker compose logs -f tvtrac
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/api/groups` | List groups (with `show_count` / `movie_count`) |
-| `POST` | `/api/groups` | Create a group (`{"name": "..."}`; 409 on duplicate) |
-| `DELETE` | `/api/groups/{id}` | Delete an **empty** group (409 if it still has members) |
+| `POST` | `/api/groups` | Create a manual group (`{"name": "..."}`) or smart group (`{"kind": "smart", "smart_field": "genre", "smart_value": "Drama"}`); 409 on duplicate |
+| `DELETE` | `/api/groups/{id}` | Delete a group (smart groups always deletable; manual groups must be empty) |
+| `GET` | `/api/groups/field-values?type=show\|movie&field=...` | Distinct values for a smart-group field across the library |
 
 ### Scan & episodes
 

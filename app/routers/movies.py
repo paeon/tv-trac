@@ -14,10 +14,21 @@ from app.models.group import Group
 from app.models.movie import Movie
 from app.schemas.movie import MovieCreate, MovieOut
 from app.services.movie_sync import sync_movies
+from app.services.smart_groups import movie_matches
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/movies", tags=["movies"])
+
+
+async def _apply_smart_group_names(movies, db: AsyncSession) -> None:
+    smart_groups = (
+        await db.execute(select(Group).where(Group.kind == "smart"))
+    ).scalars().all()
+    for movie in movies:
+        manual = [g.name for g in movie.groups]
+        smart = [g.name for g in smart_groups if movie_matches(movie, g)]
+        movie.group_names = manual + smart
 
 
 @router.get("", response_model=List[MovieOut])
@@ -29,7 +40,9 @@ async def list_movies(
     if not include_deleted:
         query = query.where(Movie.deleted == False)  # noqa: E712
     result = await db.execute(query)
-    return result.scalars().all()
+    movies = result.scalars().all()
+    await _apply_smart_group_names(movies, db)
+    return movies
 
 
 @router.get("/{movie_id}", response_model=MovieOut)
@@ -38,6 +51,7 @@ async def get_movie(movie_id: int, db: AsyncSession = Depends(get_db)):
     movie = result.scalar_one_or_none()
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
+    await _apply_smart_group_names([movie], db)
     return movie
 
 

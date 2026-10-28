@@ -77,6 +77,11 @@ class ShowOut(BaseModel):
     last_aired: str | None
     notes: str | None
     imdb_id: str | None
+    genre_list: list[str] = []
+    network: str | None
+    country: str | None
+    language: str | None
+    status: str | None
     missing_count: int
     missing_details: str | None
     missing_season_count: int

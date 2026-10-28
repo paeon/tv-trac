@@ -7,6 +7,7 @@ TheTVDB, fetches full metadata, and upserts everything into the database.
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from datetime import datetime, timezone
@@ -19,6 +20,7 @@ from sqlalchemy.orm import selectinload
 from app.models.show import Episode, Season, Show
 from app.services.check import check_missing
 from app.services.images import download_image, store_local_image
+from app.services.metadata import country_name, language_name
 from app.services.scanner import ScannedShow, scan_media_root
 from app.services.tvdb import tvdb
 
@@ -59,6 +61,9 @@ def _is_fully_synced(show: Show | None, scanned_show: ScannedShow) -> bool:
     if show is None:
         return False
     if not (show.overview and show.first_aired):
+        return False
+    # Metadata not yet backfilled (e.g. genres/network from smart groups)
+    if show.genres is None:
         return False
     existing_seasons = {s.season_number: s for s in show.seasons}
     for season_num, scanned_season in scanned_show.seasons.items():
@@ -179,6 +184,10 @@ async def _sync_one_show(
     tvdb_imdb_id: str | None = None
     tvdb_status: str | None = None
     tvdb_last_aired: str | None = None
+    tvdb_genres: list[str] | None = None
+    tvdb_network: str | None = None
+    tvdb_country: str | None = None
+    tvdb_language: str | None = None
     tvdb_seasons: dict[int, int] = {}  # season_number -> tvdb_season_id
 
     if tvdb_available:
@@ -243,6 +252,20 @@ async def _sync_one_show(
                 tvdb_last_aired = extended.get("lastAired") or extended.get(
                     "last_aired"
                 )
+                genres = extended.get("genres") or []
+                tvdb_genres = [
+                    g.get("name")
+                    for g in genres
+                    if isinstance(g, dict) and g.get("name")
+                ]
+                network = (
+                    extended.get("originalNetwork")
+                    or extended.get("latestNetwork")
+                    or {}
+                )
+                tvdb_network = network.get("name") if isinstance(network, dict) else None
+                tvdb_country = country_name(extended.get("originalCountry"))
+                tvdb_language = language_name(extended.get("originalLanguage"))
                 for s in extended.get("seasons") or []:
                     sn = s.get("number")
                     sid = s.get("id")
@@ -275,6 +298,11 @@ async def _sync_one_show(
             tvdb_slug=tvdb_slug,
             imdb_id=tvdb_imdb_id,
             ended=(tvdb_status == "Ended"),
+            genres=json.dumps(tvdb_genres) if tvdb_genres is not None else None,
+            network=tvdb_network,
+            country=tvdb_country,
+            language=tvdb_language,
+            status=tvdb_status,
         )
         db.add(show)
         await db.flush()
@@ -296,6 +324,16 @@ async def _sync_one_show(
             show.ended = True
         if tvdb_last_aired and not show.last_aired:
             show.last_aired = tvdb_last_aired
+        if tvdb_genres is not None and show.genres is None:
+            show.genres = json.dumps(tvdb_genres)
+        if tvdb_network and not show.network:
+            show.network = tvdb_network
+        if tvdb_country and not show.country:
+            show.country = tvdb_country
+        if tvdb_language and not show.language:
+            show.language = tvdb_language
+        if tvdb_status and not show.status:
+            show.status = tvdb_status
 
     # Prefer local artwork, then fall back to the API
     if scanned_show.poster_path:
