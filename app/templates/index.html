@@ -178,6 +178,11 @@
                 background: var(--accent);
                 color: #fff;
             }
+            .filter-bar select.active {
+                color: var(--accent) !important;
+                border-color: var(--accent) !important;
+                font-weight: 700;
+            }
             .page-nav {
                 display: flex;
                 gap: 0.25rem;
@@ -997,6 +1002,32 @@
                 }
             }
 
+            function updateSelectActive(kind) {
+                var prefix = kind === "movies" ? "movies-" : "shows-";
+                [
+                    ["sort", "alpha"],
+                    ["date-filter", ""],
+                    ["aired-filter", ""],
+                    ["rating-filter", "0"],
+                    ["group-filter", ""],
+                ].forEach(function (pair) {
+                    var id = prefix + pair[0];
+                    var el = document.getElementById(id);
+                    if (!el) return;
+                    var v = el.value;
+                    var active;
+                    if (
+                        pair[0] === "date-filter" ||
+                        pair[0] === "aired-filter"
+                    ) {
+                        active = v !== "" && v !== "all";
+                    } else {
+                        active = v !== pair[1];
+                    }
+                    el.classList.toggle("active", active);
+                });
+            }
+
             function onGroupFilterChange(kind) {
                 var sel = document.getElementById(
                     kind === "movies"
@@ -1560,6 +1591,7 @@
                     showCurrentPage,
                     showPerPage,
                 );
+                updateSelectActive("shows");
                 saveShowState();
             }
             function showStatsHtml(s, compact) {
@@ -2131,6 +2163,7 @@
                     moviePage,
                     moviePerPage,
                 );
+                updateSelectActive("movies");
             }
 
             function renderMovieGrid(movies) {
