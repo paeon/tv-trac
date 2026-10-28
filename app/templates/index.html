@@ -678,7 +678,7 @@
                         ></span>
                     </h2>
                     <div
-                        id="shows-group-heading"
+                        id="shows-filter-banner"
                         style="display: none"
                     ></div>
                     <div id="shows-list" class="loading">Loading shows...</div>
@@ -807,7 +807,7 @@
                         ></span>
                     </h2>
                     <div
-                        id="movies-group-heading"
+                        id="movies-filter-banner"
                         style="display: none"
                     ></div>
                     <div id="movies-list" class="loading">
@@ -922,32 +922,112 @@
                     moviesSel.innerHTML = groupOptions("movies", movieGroupFilter);
             }
 
-            function updateGroupHeading(kind) {
+            function filterBannerSegments(kind) {
+                var prefix = kind === "movies" ? "movies-" : "shows-";
+                var segments = [];
+
+                var groupVal = document.getElementById(
+                    prefix + "group-filter",
+                ).value;
+                if (groupVal) segments.push("Group: " + groupVal);
+
+                if (kind === "shows") {
+                    var statusLabels = {
+                        watched: "Watched",
+                        partial: "Partial",
+                        unwatched: "Unwatched",
+                        hidden: "Hidden",
+                        watchlist: "Watchlist",
+                        ended: "Ended",
+                        continuing: "Continuing",
+                    };
+                    if (showFilter !== "all" && statusLabels[showFilter])
+                        segments.push(statusLabels[showFilter]);
+                } else {
+                    var mStatus = {
+                        watched: "Watched",
+                        unwatched: "Unwatched",
+                        watchlist: "Watchlist",
+                    };
+                    if (movieFilter !== "all" && mStatus[movieFilter])
+                        segments.push(mStatus[movieFilter]);
+                }
+
+                var search = kind === "movies" ? movieSearch : showSearch;
+                if (search) segments.push('Search: "' + search + '"');
+
+                if (kind === "shows") {
+                    var dateVal = document.getElementById(
+                        prefix + "date-filter",
+                    ).value;
+                    if (dateVal && dateVal !== "all") {
+                        var dl = {
+                            1: "Added: last day",
+                            3: "Added: last 3 days",
+                            7: "Added: last 7 days",
+                            30: "Added: last 30 days",
+                        };
+                        segments.push(dl[dateVal] || "Added: " + dateVal);
+                    }
+                }
+
+                var airedVal = document.getElementById(
+                    prefix + "aired-filter",
+                ).value;
+                if (airedVal && airedVal !== "all") {
+                    var al = {
+                        upcoming: "Aired: Upcoming",
+                        month: "Aired: last month",
+                        "6months": "Aired: last six months",
+                        1: "Aired: last year",
+                        3: "Aired: last 3 years",
+                        5: "Aired: last 5 years",
+                        10: "Aired: last 10 years",
+                        older: "Aired: over 10 years ago",
+                    };
+                    segments.push(al[airedVal] || "Aired: " + airedVal);
+                }
+
+                var ratingVal = parseInt(
+                    document.getElementById(prefix + "rating-filter").value,
+                );
+                if (ratingVal > 0)
+                    segments.push("Rating: " + ratingVal + "★");
+
+                return segments;
+            }
+
+            function updateFilterBanner(kind, filtered) {
                 var id =
                     kind === "movies"
-                        ? "movies-group-heading"
-                        : "shows-group-heading";
-                var name =
-                    kind === "movies" ? movieGroupFilter : showGroupFilter;
+                        ? "movies-filter-banner"
+                        : "shows-filter-banner";
                 var el = document.getElementById(id);
                 if (!el) return;
-                if (name) {
-                    el.style.display = "block";
-                    el.style.marginBottom = "0.75rem";
-                    el.style.padding = "0.6rem 0.9rem";
-                    el.style.background = "rgba(233,69,96,0.08)";
-                    el.style.border = "1px solid var(--accent)";
-                    el.style.borderRadius = "6px";
-                    el.style.fontSize = "1.1rem";
-                    el.style.fontWeight = "700";
-                    el.style.color = "var(--text)";
-                    el.innerHTML =
-                        '<span style="color:var(--text-muted);font-weight:600;font-size:0.8rem;">Group:</span> ' +
-                        escapeHtml(name);
-                } else {
+                var segments = filterBannerSegments(kind);
+                if (segments.length === 0) {
                     el.style.display = "none";
                     el.innerHTML = "";
+                    return;
                 }
+                var count = filtered.length;
+                var text = segments
+                    .map(function (s) {
+                        return escapeHtml(s) + " (" + count + ")";
+                    })
+                    .join(" · ");
+                el.style.display = "block";
+                el.style.marginBottom = "0.75rem";
+                el.style.padding = "0.6rem 0.9rem";
+                el.style.background = "rgba(233,69,96,0.08)";
+                el.style.border = "1px solid var(--accent)";
+                el.style.borderRadius = "6px";
+                el.style.fontSize = "1.1rem";
+                el.style.fontWeight = "700";
+                el.style.color = "var(--text)";
+                el.innerHTML =
+                    '<span style="color:var(--text-muted);font-weight:600;font-size:0.8rem;">Filter:</span> ' +
+                    text;
             }
 
             function updateSelectActive(kind) {
@@ -1428,7 +1508,7 @@
                         );
                     });
                 }
-                updateGroupHeading("shows");
+                updateFilterBanner("shows", filtered);
                 // Compute counts: total / visible / hidden
                 var totalShows = allShows.length;
                 var visibleShows = allShows.filter(function (s) {
@@ -2071,7 +2151,7 @@
                         );
                     });
                 }
-                updateGroupHeading("movies");
+                updateFilterBanner("movies", filtered);
                 var sort = document.getElementById("movies-sort").value;
                 if (airedFilter && airedFilter !== "all" && sort === "alpha") {
                     if (airedFilter === "upcoming") {
