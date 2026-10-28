@@ -191,6 +191,9 @@
                 border-color: var(--accent);
                 font-weight: 700;
             }
+            .filter-select:focus {
+                outline: none;
+            }
             .page-nav {
                 display: flex;
                 gap: 0.25rem;
@@ -592,7 +595,7 @@
                     <select
                         id="shows-sort"
                         class="filter-select"
-                        onchange="applyShowFilters()"
+                        onchange="onFilterSelectChange('shows')"
                         style="margin-left: auto"
                     >
                         <option value="alpha">A-Z</option>
@@ -606,7 +609,7 @@
                     <select
                         id="shows-date-filter"
                         class="filter-select"
-                        onchange="applyShowFilters()"
+                        onchange="onFilterSelectChange('shows')"
                     >
                         <option value="" disabled selected>
                             New Content Filter
@@ -620,7 +623,7 @@
                     <select
                         id="shows-aired-filter"
                         class="filter-select"
-                        onchange="applyShowFilters()"
+                        onchange="onFilterSelectChange('shows')"
                     >
                         <option value="" disabled selected>
                             First Aired Filter
@@ -638,7 +641,7 @@
                     <select
                         id="shows-rating-filter"
                         class="filter-select"
-                        onchange="applyShowFilters()"
+                        onchange="onFilterSelectChange('shows')"
                     >
                         <option value="0">Any rating</option>
                         <option value="1">1 ★</option>
@@ -736,7 +739,7 @@
                     <select
                         id="movies-sort"
                         class="filter-select"
-                        onchange="applyMovieFilters()"
+                        onchange="onFilterSelectChange('movies')"
                         style="margin-left: auto"
                     >
                         <option value="alpha">A-Z</option>
@@ -750,7 +753,7 @@
                     <select
                         id="movies-aired-filter"
                         class="filter-select"
-                        onchange="applyMovieFilters()"
+                        onchange="onFilterSelectChange('movies')"
                     >
                         <option value="" disabled selected>
                             Release Date Filter
@@ -768,7 +771,7 @@
                     <select
                         id="movies-rating-filter"
                         class="filter-select"
-                        onchange="applyMovieFilters()"
+                        onchange="onFilterSelectChange('movies')"
                     >
                         <option value="0">Any rating</option>
                         <option value="1">1 ★</option>
@@ -973,6 +976,17 @@
                 });
             }
 
+            function blurActiveSelect() {
+                var el = document.activeElement;
+                if (el && el.tagName === "SELECT") el.blur();
+            }
+
+            function onFilterSelectChange(kind) {
+                if (kind === "movies") applyMovieFilters();
+                else applyShowFilters();
+                blurActiveSelect();
+            }
+
             function onGroupFilterChange(kind) {
                 var sel = document.getElementById(
                     kind === "movies"
@@ -986,6 +1000,7 @@
                 }
                 if (kind === "movies") applyMovieFilters();
                 else applyShowFilters();
+                blurActiveSelect();
             }
 
             function openDeleteGroupPopover(anchor) {
