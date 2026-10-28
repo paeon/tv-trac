@@ -178,9 +178,17 @@
                 background: var(--accent);
                 color: #fff;
             }
-            .filter-bar select.active {
-                color: var(--accent) !important;
-                border-color: var(--accent) !important;
+            .filter-select {
+                background: var(--surface);
+                color: var(--text);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 0.4rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            .filter-select.active {
+                color: var(--accent);
+                border-color: var(--accent);
                 font-weight: 700;
             }
             .page-nav {
@@ -583,16 +591,9 @@
                     </button>
                     <select
                         id="shows-sort"
+                        class="filter-select"
                         onchange="applyShowFilters()"
-                        style="
-                            background: var(--surface);
-                            color: var(--text);
-                            border: 1px solid var(--border);
-                            border-radius: 6px;
-                            padding: 0.4rem 0.6rem;
-                            font-size: 0.8rem;
-                            margin-left: auto;
-                        "
+                        style="margin-left: auto"
                     >
                         <option value="alpha">A-Z</option>
                         <option value="zalpha">Z-A</option>
@@ -604,15 +605,8 @@
                     </select>
                     <select
                         id="shows-date-filter"
+                        class="filter-select"
                         onchange="applyShowFilters()"
-                        style="
-                            background: var(--surface);
-                            color: var(--text);
-                            border: 1px solid var(--border);
-                            border-radius: 6px;
-                            padding: 0.4rem 0.6rem;
-                            font-size: 0.8rem;
-                        "
                     >
                         <option value="" disabled selected>
                             New Content Filter
@@ -625,15 +619,8 @@
                     </select>
                     <select
                         id="shows-aired-filter"
+                        class="filter-select"
                         onchange="applyShowFilters()"
-                        style="
-                            background: var(--surface);
-                            color: var(--text);
-                            border: 1px solid var(--border);
-                            border-radius: 6px;
-                            padding: 0.4rem 0.6rem;
-                            font-size: 0.8rem;
-                        "
                     >
                         <option value="" disabled selected>
                             First Aired Filter
@@ -650,15 +637,8 @@
                     </select>
                     <select
                         id="shows-rating-filter"
+                        class="filter-select"
                         onchange="applyShowFilters()"
-                        style="
-                            background: var(--surface);
-                            color: var(--text);
-                            border: 1px solid var(--border);
-                            border-radius: 6px;
-                            padding: 0.4rem 0.6rem;
-                            font-size: 0.8rem;
-                        "
                     >
                         <option value="0">Any rating</option>
                         <option value="1">1 ★</option>
@@ -669,15 +649,8 @@
                     </select>
                     <select
                         id="shows-group-filter"
+                        class="filter-select"
                         onchange="onGroupFilterChange('shows')"
-                        style="
-                            background: var(--surface);
-                            color: var(--text);
-                            border: 1px solid var(--border);
-                            border-radius: 6px;
-                            padding: 0.4rem 0.6rem;
-                            font-size: 0.8rem;
-                        "
                     >
                         <option value="">All Groups</option>
                     </select>
@@ -762,16 +735,9 @@
                     </button>
                     <select
                         id="movies-sort"
+                        class="filter-select"
                         onchange="applyMovieFilters()"
-                        style="
-                            background: var(--surface);
-                            color: var(--text);
-                            border: 1px solid var(--border);
-                            border-radius: 6px;
-                            padding: 0.4rem 0.6rem;
-                            font-size: 0.8rem;
-                            margin-left: auto;
-                        "
+                        style="margin-left: auto"
                     >
                         <option value="alpha">A-Z</option>
                         <option value="zalpha">Z-A</option>
@@ -783,15 +749,8 @@
                     </select>
                     <select
                         id="movies-aired-filter"
+                        class="filter-select"
                         onchange="applyMovieFilters()"
-                        style="
-                            background: var(--surface);
-                            color: var(--text);
-                            border: 1px solid var(--border);
-                            border-radius: 6px;
-                            padding: 0.4rem 0.6rem;
-                            font-size: 0.8rem;
-                        "
                     >
                         <option value="" disabled selected>
                             Release Date Filter
@@ -808,15 +767,8 @@
                     </select>
                     <select
                         id="movies-rating-filter"
+                        class="filter-select"
                         onchange="applyMovieFilters()"
-                        style="
-                            background: var(--surface);
-                            color: var(--text);
-                            border: 1px solid var(--border);
-                            border-radius: 6px;
-                            padding: 0.4rem 0.6rem;
-                            font-size: 0.8rem;
-                        "
                     >
                         <option value="0">Any rating</option>
                         <option value="1">1 ★</option>
@@ -827,15 +779,8 @@
                     </select>
                     <select
                         id="movies-group-filter"
+                        class="filter-select"
                         onchange="onGroupFilterChange('movies')"
-                        style="
-                            background: var(--surface);
-                            color: var(--text);
-                            border: 1px solid var(--border);
-                            border-radius: 6px;
-                            padding: 0.4rem 0.6rem;
-                            font-size: 0.8rem;
-                        "
                     >
                         <option value="">All Groups</option>
                     </select>
