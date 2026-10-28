@@ -994,6 +994,21 @@
                 if (ratingVal > 0)
                     segments.push("Rating: " + ratingVal + "★");
 
+                var sortVal = document.getElementById(
+                    prefix + "sort",
+                ).value;
+                if (sortVal && sortVal !== "alpha") {
+                    var sl = {
+                        zalpha: "Sort: Z-A",
+                        recent: "Sort: Recently Added",
+                        "aired-desc": "Sort: First Aired: Newest",
+                        "aired-asc": "Sort: First Aired: Oldest",
+                        "rating-desc": "Sort: Rating: High to Low",
+                        "rating-asc": "Sort: Rating: Low to High",
+                    };
+                    segments.push(sl[sortVal] || "Sort: " + sortVal);
+                }
+
                 return segments;
             }
 
